@@ -19,21 +19,53 @@ This platform integrates advanced Machine Learning models with a robust Clinical
 
 ## 🛠️ Technology Stack
 
-- **Backend:** Python 3.12, PostgreSQL 14+
-- **Frontend:** Streamlit (Custom Premium CSS)
-- **OCR Engine:** Tesseract OCR, PyMuPDF
-- **ML Framework:** Scikit-Learn (Random Forest, Logistic Regression)
-- **Analytics:** Pandas, Plotly Express
-- **Security:** Bcrypt, SMTP (Email OTP), MSG91 (SMS OTP)
+### **Core Frameworks & Languages**
+- **Backend**: Python 3.12 (Core Logic & Service Layer)
+- **Frontend**: Streamlit (Premium UI Framework) with Custom **Ultra-Pro CSS**
+- **Database**: PostgreSQL 15+ (Relational Data Management)
+
+### **AI & Machine Learning**
+- **ML Framework**: Scikit-Learn (Random Forest, Logistic Regression)
+- **OCR Engine**: Tesseract OCR (Optical Character Recognition)
+- **Document Parsing**: PyMuPDF & pdf2image (High-fidelity PDF processing)
+- **Image Processing**: OpenCV & Pillow (Clinical report binarization/cleanup)
+
+### **Analytics & Visualization**
+- **Data Manipulation**: Pandas & NumPy
+- **Interactive Charts**: Plotly Express & Plotly Graph Objects
+
+### **Communication & Security**
+- **Authentication**: Bcrypt (Password Hashing)
+- **SMS Gateway**: MSG91 API (Secure Mobile OTP)
+- **Email Service**: SMTP (Secure Email OTP)
+- **API Integration**: Requests Library
+
+### **Developer Tools**
+- **IDE**: Visual Studio Code
+- **Version Control**: Git & GitHub
+- **Environment**: Python Virtualenv
 
 ---
 
 ## 📂 Project Structure
 
-- `frontend/app.py`: Main Streamlit application and UI logic.
-- `backend/`: Core service layer for OCR, ML, Rule Engine, and Database utilities.
-- `data/`: Cleaned clinical datasets used for model scaling and reference.
-- `start_app.bat`: Quick-start batch script for activating the virtual environment and launching the app.
+```text
+medical_ai_project/
+├── backend/
+│   ├── auth/           # OTP & Authentication logic
+│   ├── database/       # PostgreSQL utility functions
+│   ├── models/         # Trained ML models (.pkl)
+│   ├── ocr/            # Tesseract OCR processing
+│   ├── preprocessing/  # Data cleaning scripts
+│   ├── rule_engine/    # Clinical WHO/ADA guidelines
+│   └── training/       # Model training pipelines
+├── data/               # Clinical datasets (CSVs)
+├── frontend/
+│   ├── app.py          # Main Streamlit UI
+│   └── style.css       # Premium Ultra-Pro styling
+├── requirements.txt    # Project dependencies
+└── README.md           # Documentation
+```
 
 ---
 
