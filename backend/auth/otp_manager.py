@@ -2,6 +2,7 @@ import random
 import time
 import smtplib
 import requests
+import re
 from email.message import EmailMessage
 import os
 from database.db_utils import get_system_setting

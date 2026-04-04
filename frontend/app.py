@@ -29,7 +29,8 @@ from database.db_utils import (
     delete_user, toggle_user_status, admin_reset_password, delete_patient_record,
     get_all_patients_admin, get_db_connection, get_registration_data,
     update_user_info, get_user_dashboard_stats, get_session_vitals,
-    activate_user_account, store_otp, initialize_tables
+    activate_user_account, store_otp, initialize_tables,
+    verify_otp_db, get_user_id_by_email
 )
 from auth.otp_manager import generate_otp, send_otp
 from ocr.ocr_engine import process_document_to_dict
