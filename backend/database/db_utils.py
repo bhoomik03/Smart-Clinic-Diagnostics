@@ -12,7 +12,7 @@ DB_PASS = os.environ.get("MEDICAL_AI_DB_PASS", "1234")
 DB_HOST = os.environ.get("MEDICAL_AI_DB_HOST", "localhost")
 DB_PORT = os.environ.get("MEDICAL_AI_DB_PORT", "5432")
 DB_NAME = os.environ.get("MEDICAL_AI_DB_NAME", "medical_ai")
-DB_SSLMODE = os.environ.get("DB_SSLMODE", "prefer")
+DB_SSLMODE = os.environ.get("DB_SSLMODE", "require")
 
 def create_database():
     """Creates the medical_ai database if it doesn't exist."""

@@ -641,6 +641,8 @@ def get_diabetes_scaler():
     """ Load a small slice of raw data to fit standard scaler correctly """
     data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'cleaned_diabetes.csv')
     if not os.path.exists(data_path):
+        data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'diabetes_sample.csv')
+    if not os.path.exists(data_path):
         data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'diabetes.csv')
     df = pd.read_csv(data_path, nrows=1000)
     
@@ -654,6 +656,8 @@ def get_heart_scaler():
     """ Load a small slice of raw data to fit standard scaler correctly """
     data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'cleaned_heart.csv')
     if not os.path.exists(data_path):
+        data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'heart_sample.csv')
+    if not os.path.exists(data_path):
         data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'heart.csv')
     df = pd.read_csv(data_path, nrows=1000)
     
@@ -665,7 +669,11 @@ def get_heart_scaler():
 @st.cache_resource
 def get_diagnosis_scaler():
     """ Load a slice of raw data to fit standard scaler & label encoders correctly """
-    data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'disease_diagnosis.csv')
+    data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'cleaned_disease_diagnosis.csv')
+    if not os.path.exists(data_path):
+        data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'disease_diagnosis_sample.csv')
+    if not os.path.exists(data_path):
+        data_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'disease_diagnosis.csv')
     if not os.path.exists(data_path):
         return None, None, None
         

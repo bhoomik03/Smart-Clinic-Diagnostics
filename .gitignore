@@ -32,5 +32,14 @@ Thumbs.db
 *.tar.gz
 *.tar
 
-# Large dataset exports
-*.csv
+# Large dataset exports (Ignored due to Git size limits)
+data/*.csv
+!data/*_sample.csv
+!data/sample_report.png
+
+# Explicitly ignore very large files
+data/cleaned_*.csv
+data/diabetes.csv
+data/heart.csv
+data/disease_diagnosis.csv
+data/healthcare_dataset.csv
