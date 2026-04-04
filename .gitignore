@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env
+
+# Streamlit
+.streamlit/
+
+# Database / Local Files
+pip_error.txt
+raw_ocr_output.txt
+backend/ocr_dump.txt
+backend/ocr/ocr_dump.txt
+
+# OS
+.DS_Store
+Thumbs.db
+
+.disease_diagnosis
+.cleaned_heart.csv 
+.heart.csv 
+.heart_diseases.csv 
+.cleaned_diseases_diagnosis.csv 
+.disease_diagnosis.csv 
+
+# Archives
+*.zip
+*.tar.gz
+*.tar
+
+# Large dataset exports
+*.csv
