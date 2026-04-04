@@ -30,7 +30,7 @@ from database.db_utils import (
     get_all_patients_admin, get_db_connection, get_registration_data,
     update_user_info, get_user_dashboard_stats, get_session_vitals,
     activate_user_account, store_otp, initialize_tables,
-    verify_otp_db, get_user_id_by_email
+    verify_otp_db, get_user_id_by_email, get_system_utilization, delete_login_activity
 )
 from auth.otp_manager import generate_otp, send_otp
 from ocr.ocr_engine import process_document_to_dict
