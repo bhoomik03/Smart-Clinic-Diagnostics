@@ -31,7 +31,8 @@ from database.db_utils import (
     update_user_info, get_user_dashboard_stats, get_session_vitals,
     activate_user_account, store_otp, initialize_tables,
     verify_otp_db, get_user_id_by_email, get_system_utilization, delete_login_activity,
-    get_latest_patient_insight
+    get_latest_patient_insight, add_diagnostic_session, add_clinical_vital,
+    add_clinical_observation
 )
 from auth.otp_manager import generate_otp, send_otp
 from ocr.ocr_engine import process_document_to_dict
