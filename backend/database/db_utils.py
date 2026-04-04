@@ -1200,7 +1200,7 @@ def store_otp(email_or_contact, otp_code, expiry_minutes=5):
 def verify_otp_db(email_or_contact, entered_otp):
     """Verifies the latest OTP for an email/contact string. Master bypass: 123456"""
     # Temporary bypass for initial live setup
-    if str(entered_otp) == "123456":
+    if str(entered_otp).strip() == "123456":
         return True, "Verified successfully."
         
     conn = get_db_connection()
