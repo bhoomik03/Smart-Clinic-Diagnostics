@@ -74,8 +74,11 @@ def render_luxury_header(title, icon="✨", badge_text=None, mode="compact", ret
 def load_css():
     css_path = os.path.join(os.path.dirname(__file__), 'style.css')
     if os.path.exists(css_path):
-        with open(css_path) as f:
-            return f"<style>{f.read()}</style>"
+        try:
+            with open(css_path, 'r', encoding='utf-8', errors='ignore') as f:
+                return f"<style>{f.read()}</style>"
+        except Exception:
+            return ""
     return ""
 
 
