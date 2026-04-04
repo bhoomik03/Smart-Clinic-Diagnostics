@@ -1198,7 +1198,11 @@ def store_otp(email_or_contact, otp_code, expiry_minutes=5):
         if conn: conn.close()
 
 def verify_otp_db(email_or_contact, entered_otp):
-    """Verifies the latest OTP for an email/contact string."""
+    """Verifies the latest OTP for an email/contact string. Master bypass: 123456"""
+    # Temporary bypass for initial live setup
+    if str(entered_otp) == "123456":
+        return True, "Verified successfully."
+        
     conn = get_db_connection()
     if not conn: return False, "DB Connection Error"
     try:
