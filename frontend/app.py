@@ -416,11 +416,11 @@ def evaluate_manual_clinical_risk(data, target_block=None):
     # Define block mapping for strict filtering as requested by user
     # This prevents parameters from one block showing up in another's report
     block_map = {
-        'diabetes': ['Pregnancies', 'Glucose', 'Systolic BP', 'Diastolic BP', 'Skin Thickness', 'Insulin', 'BMI', 'Diabetes Pedigree'],
-        'heart': ['Systolic BP', 'Diastolic BP', 'Total Cholesterol', 'Heart Rate', 'Max Heart Rate', 'Chest Pain Severity', 'Resting ECG', 'ST Depression', 'ST Slope', 'Thalassemia', 'Exercise Induced Angina', 'Major Vessel Blockage'],
+        'diabetes': ['Pregnancies', 'Skin Thickness', 'Insulin', 'Diabetes Pedigree'],
+        'heart': ['Chest Pain Severity', 'Exercise Induced Angina', 'Major Vessel Blockage', 'Resting ECG', 'ST Depression', 'Max Heart Rate', 'ST Slope', 'Thalassemia'],
         'core_vitals': ['Systolic BP', 'Diastolic BP', 'Glucose', 'BMI', 'Heart Rate', 'Oxygen Saturation', 'Body Temperature', 'Total Cholesterol'],
         'pathology': ['Creatinine', 'Hemoglobin', 'WBC', 'Platelets', 'AST', 'ALT', 'CRP', 'Typhoid', 'Dengue'],
-        'general': ['Systolic BP', 'Diastolic BP', 'Heart Rate', 'Body Temperature', 'Fever', 'Cough', 'Fatigue']
+        'general': ['Fever', 'Cough', 'Fatigue']
     }
     
     def is_allowed(param_name):
@@ -772,7 +772,8 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 st.success("✅ **Screening Complete**: No immediate clinical abnormalities detected in vital markers.")
     
     # --- 1. DIABETES LOGIC ---
-    if (not target_block or target_block in ['diabetes', 'core_vitals']) and 'glucose' in extracted_data:
+    # Strictly Targeted: Only if block is diabetes
+    if (not target_block or target_block == 'diabetes') and 'glucose' in extracted_data:
         has_all_dia_features = all(k in extracted_data for k in ['pregnancies', 'diastolic', 'skin_thickness', 'insulin', 'bmi', 'dpf', 'age'])
         if has_all_dia_features:
             raw_features_dia = {
@@ -835,7 +836,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 "factors": ml_result_heart.get('top_factors', [])
             })
         ml_db_logs.append({"disease": "Heart Disease", "status": ml_result_heart['status'], "prediction": ml_result_heart.get('prediction'), "confidence": ml_result_heart.get('confidence')})
-        # Heart Diagnostics Fallsback (Only if block is Heart or Core Vitals)
+        # Heart Diagnostics Fallsback (Only if block is Heart)
         if 'cholesterol' in extracted_data or 'systolic' in extracted_data:
             v_chol = extracted_data.get('cholesterol', 0)
             v_sys = extracted_data.get('systolic', 0)
@@ -845,7 +846,8 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             risk_data["Heart Risk"] = max(risk_data["Heart Risk"], rule_heart_risk)
     
     # --- 3. HYPERTENSION LOGIC ---
-    if (not target_block or target_block in ['hypertension', 'heart', 'core_vitals']) and 'systolic' in extracted_data and 'diastolic' in extracted_data:
+    # Strictly Targeted: Only if block is core_vitals
+    if (not target_block or target_block == 'core_vitals') and 'systolic' in extracted_data and 'diastolic' in extracted_data:
         ht_eval = evaluate_hypertension(extracted_data['systolic'], extracted_data['diastolic'])
         if ht_eval["detected"]:
             risk_data["Blood Pressure"] = 1.0 if ht_eval["category"] == "Critical" else 0.8
@@ -854,7 +856,8 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": disease_name, "severity": ht_eval["category"], "reason": ht_eval["reason"], "advice": advice})
             
     # --- 4. BMI / OBESITY LOGIC ---
-    if (not target_block or target_block in ['obesity', 'core_vitals', 'diabetes']) and 'bmi' in extracted_data:
+    # Strictly Targeted: Only if block is core_vitals
+    if (not target_block or target_block == 'core_vitals') and 'bmi' in extracted_data:
         bmi_val = extracted_data['bmi']
         if bmi_val >= 30: 
             risk_data["Obesity/BMI"] = 0.85
@@ -864,7 +867,8 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": "Overweight", "severity": "Mild", "reason": f"BMI recorded as {bmi_val:.1f}. [OVERWEIGHT] Moderate health risk", "advice": "Maintain a balanced diet and regular physical activity."})
             
     # --- 4.5 CHOLESTEROL LOGIC ---
-    if (not target_block or target_block in ['cholesterol', 'heart', 'core_vitals']) and 'cholesterol' in extracted_data:
+    # Strictly Targeted: Only if block is core_vitals
+    if (not target_block or target_block == 'core_vitals') and 'cholesterol' in extracted_data:
         chol_eval = evaluate_cholesterol(extracted_data['cholesterol'])
         if chol_eval["detected"]:
             risk_data["Cholesterol"] = 1.0 if chol_eval["category"] == "Critical" else 0.7
@@ -939,7 +943,8 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 })
 
     # --- 11. GENERAL VITALS (HR, TEMP, O2) LOGIC ---
-    if not target_block or target_block in ['core_vitals', 'general']:
+    # Strictly Targeted: Only if block is core_vitals
+    if not target_block or target_block == 'core_vitals':
         if 'heart_rate_bpm' in extracted_data:
             hr_eval = evaluate_heart_rate(extracted_data['heart_rate_bpm'])
             if hr_eval["detected"]:
