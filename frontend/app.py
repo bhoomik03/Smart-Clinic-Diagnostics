@@ -748,7 +748,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 st.success("✅ **Screening Complete**: No immediate clinical abnormalities detected in vital markers.")
     
     # --- 1. DIABETES LOGIC ---
-    if (not target_block or target_block == 'diabetes') and 'glucose' in extracted_data:
+    if (not target_block or target_block in ['diabetes', 'core_vitals']) and 'glucose' in extracted_data:
         has_all_dia_features = all(k in extracted_data for k in ['pregnancies', 'diastolic', 'skin_thickness', 'insulin', 'bmi', 'dpf', 'age'])
         if has_all_dia_features:
             raw_features_dia = {
@@ -821,7 +821,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
         risk_data["Heart Risk"] = max(risk_data["Heart Risk"], rule_heart_risk)
     
     # --- 3. HYPERTENSION LOGIC ---
-    if (not target_block or target_block in ['hypertension', 'heart']) and 'systolic' in extracted_data and 'diastolic' in extracted_data:
+    if (not target_block or target_block in ['hypertension', 'heart', 'core_vitals']) and 'systolic' in extracted_data and 'diastolic' in extracted_data:
         ht_eval = evaluate_hypertension(extracted_data['systolic'], extracted_data['diastolic'])
         if ht_eval["detected"]:
             risk_data["Blood Pressure"] = 1.0 if ht_eval["category"] == "Critical" else 0.8
@@ -830,7 +830,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": disease_name, "severity": ht_eval["category"], "reason": ht_eval["reason"], "advice": advice})
             
     # --- 4. BMI / OBESITY LOGIC ---
-    if (not target_block or target_block == 'obesity') and 'bmi' in extracted_data:
+    if (not target_block or target_block in ['obesity', 'core_vitals']) and 'bmi' in extracted_data:
         bmi_val = extracted_data['bmi']
         if bmi_val >= 30: 
             risk_data["Obesity/BMI"] = 0.85
@@ -840,7 +840,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": "Overweight", "severity": "Mild", "reason": f"BMI recorded as {bmi_val:.1f}. [OVERWEIGHT] Moderate health risk", "advice": "Maintain a balanced diet and regular physical activity."})
             
     # --- 4.5 CHOLESTEROL LOGIC ---
-    if (not target_block or target_block in ['cholesterol', 'heart']) and 'cholesterol' in extracted_data:
+    if (not target_block or target_block in ['cholesterol', 'heart', 'core_vitals']) and 'cholesterol' in extracted_data:
         chol_eval = evaluate_cholesterol(extracted_data['cholesterol'])
         if chol_eval["detected"]:
             risk_data["Cholesterol"] = 1.0 if chol_eval["category"] == "Critical" else 0.7
