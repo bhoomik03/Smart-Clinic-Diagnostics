@@ -55,8 +55,13 @@ def get_db_connection():
             port=DB_PORT,
             sslmode=DB_SSLMODE
         )
+        # Set timezone for the current session to ensure IST consistency
+        cursor = conn.cursor()
+        cursor.execute("SET timezone TO 'Asia/Kolkata';")
+        cursor.close()
+        return conn
     except Exception as e:
-        print(f"Error connecting to the database: {e}")
+        print(f"CRITICAL: Error connecting to the database '{DB_NAME}' at {DB_HOST}: {e}")
         return None
 
 def initialize_tables():
@@ -83,7 +88,8 @@ def initialize_tables():
                 address TEXT,
                 status VARCHAR(20) DEFAULT 'active',
                 is_verified BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
+                failed_logins INT DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -96,7 +102,7 @@ def initialize_tables():
                 age INT,
                 gender VARCHAR(50),
                 contact VARCHAR(100),
-                created_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -106,7 +112,7 @@ def initialize_tables():
                 id SERIAL PRIMARY KEY,
                 user_id INT REFERENCES users(id) ON DELETE CASCADE,
                 patient_id INT REFERENCES patients(id) ON DELETE CASCADE,
-                visit_date TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes'),
+                visit_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 source_type VARCHAR(50) NOT NULL,
                 session_status VARCHAR(50) DEFAULT 'Completed'
             )
@@ -151,7 +157,7 @@ def initialize_tables():
                 severity VARCHAR(50) NOT NULL,
                 observation_text TEXT NOT NULL,
                 guideline_ref VARCHAR(255),
-                created_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -163,7 +169,7 @@ def initialize_tables():
                 action_type VARCHAR(255) NOT NULL,
                 details TEXT,
                 ip_address VARCHAR(50),
-                created_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -172,7 +178,7 @@ def initialize_tables():
             CREATE TABLE IF NOT EXISTS system_settings (
                 key VARCHAR(255) PRIMARY KEY,
                 value TEXT NOT NULL,
-                updated_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -182,10 +188,10 @@ def initialize_tables():
                 id SERIAL PRIMARY KEY,
                 email_or_contact VARCHAR(255) NOT NULL,
                 otp_code VARCHAR(10) NOT NULL,
-                expiry_time TIMESTAMP DEFAULT (now() + interval '5 hours 40 minutes'),
+                expiry_time TIMESTAMP DEFAULT (now() + interval '10 minutes'),
                 failed_attempts INT DEFAULT 0,
                 is_used BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -197,7 +203,7 @@ def initialize_tables():
                 ip_address VARCHAR(50),
                 device VARCHAR(255),
                 status VARCHAR(50) NOT NULL,
-                timestamp TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
+                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -228,6 +234,43 @@ def initialize_tables():
         print(f"Error initializing tables: {e}")
         if conn:
             conn.rollback()
+    finally:
+        if conn:
+            cursor.close()
+            conn.close()
+
+def reset_entire_database():
+    """Wipes all clinical and user data from the database. WARNING: Destructive."""
+    conn = get_db_connection()
+    if not conn:
+        return False, "Database connection failed"
+        
+    try:
+        cursor = conn.cursor()
+        
+        # 1. Set global timezone if possible
+        try:
+            cursor.execute(f"ALTER DATABASE {DB_NAME} SET timezone TO 'Asia/Kolkata';")
+        except Exception as e:
+            print(f"Warning: Could not set global database timezone: {e}")
+            
+        # 2. Truncate all tables in correct order or with CASCADE
+        tables = [
+            'ml_predictions', 'clinical_observations', 'clinical_vitals', 
+            'diagnostic_sessions', 'patients', 'otp_verification', 
+            'login_history', 'audit_logs', 'users'
+        ]
+        
+        for table in tables:
+            cursor.execute(f"TRUNCATE TABLE {table} CASCADE;")
+            
+        conn.commit()
+        log_audit_action(cursor, "DATABASE_RESET", "Entire database wiped for a fresh start.")
+        conn.commit()
+        return True, "All database tables cleared successfully. Redirecting to registration..."
+    except Exception as e:
+        if conn: conn.rollback()
+        return False, f"Reset failed: {e}"
     finally:
         if conn:
             cursor.close()
