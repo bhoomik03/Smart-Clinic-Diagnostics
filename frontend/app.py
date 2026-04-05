@@ -2634,9 +2634,10 @@ def render_admin_dashboard():
         with chart_col1:
             with st.container(border=True):
                 if isinstance(reg_df, pd.DataFrame) and not reg_df.empty:
-                    # UPDATED: Using px.bar for single-point visibility
-                    fig_reg = px.bar(reg_df, x='scan_date', y='count', 
+                    # REVERTED TO AREA with markers for premium look
+                    fig_reg = px.area(reg_df, x='scan_date', y='count', 
                                       title="User Registrations",
+                                      markers=True,
                                       color_discrete_sequence=['#10B981'])
                     fig_reg.update_layout(
                         template='plotly_white',
@@ -2653,9 +2654,10 @@ def render_admin_dashboard():
         with chart_col2:
             with st.container(border=True):
                 if isinstance(sess_df, pd.DataFrame) and not sess_df.empty:
-                    # UPDATED: Using px.bar for single-point visibility
-                    fig_sess = px.bar(sess_df, x='scan_date', y='count', 
+                    # REVERTED TO AREA with markers for premium look
+                    fig_sess = px.area(sess_df, x='scan_date', y='count', 
                                        title="Diagnostic Session Activity",
+                                       markers=True,
                                        color_discrete_sequence=['#00D4FF'])
                     fig_sess.update_layout(
                         template='plotly_white',
