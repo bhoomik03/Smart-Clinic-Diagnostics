@@ -1361,17 +1361,14 @@ def verify_otp_db(email_or_contact, entered_otp):
                 conn.commit()
                 return False, "Too many failed attempts. Request a new OTP."
                 
-            # Final Bulletproof Aware Comparison Safety
-            now_ist = get_ist_now()
-            expiry_ist = ensure_ist(expiry_time)
+            # Ultimate Numerical Comparison (Bypasses offset mapping issues)
+            now_ts = get_ist_now().timestamp()
+            expiry_ts = ensure_ist(expiry_time).timestamp()
             
-            try:
-                if now_ist > expiry_ist:
-                    cursor.execute("UPDATE otp_verification SET is_used = TRUE WHERE id = %s", (otp_id,))
-                    conn.commit()
-                    return False, "OTP has expired."
-            except Exception as comp_err:
-                return False, f"Comparison Error: {comp_err} | Now: {type(now_ist)} ({now_ist.tzinfo}) | Expiry: {type(expiry_ist)} ({expiry_ist.tzinfo})"
+            if now_ts > expiry_ts:
+                cursor.execute("UPDATE otp_verification SET is_used = TRUE WHERE id = %s", (otp_id,))
+                conn.commit()
+                return False, "OTP has expired."
                 
             if str(otp_code) == str(entered_otp):
                 cursor.execute("UPDATE otp_verification SET is_used = TRUE WHERE id = %s", (otp_id,))
@@ -1386,7 +1383,9 @@ def verify_otp_db(email_or_contact, entered_otp):
             
         return False, "No active OTP found. Please request a new one."
     except Exception as e:
-        return False, f"Server error: {e}"
+        import traceback
+        tb = traceback.format_exc()
+        return False, f"Server error: {e}\n\nTrace: {tb}"
     finally:
         if conn: conn.close()
 
