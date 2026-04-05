@@ -197,18 +197,6 @@ def render_login_ui():
         </div>
     """, unsafe_allow_html=True)
 
-    # --- Sidebar Diagnostic Health (ONLY for debugging connection issues) ---
-    with st.sidebar:
-        st.markdown("### 🔧 Project Health")
-        if st.button("Check Database Connection"):
-            success, message, config = get_db_status()
-            if success:
-                st.success("✅ Database Connected!")
-            else:
-                st.error(f"❌ {message}")
-                st.info(f"**Loaded Config:**\n- Host: `{config['HOST']}`\n- User: `{config['USER']}`\n- DB: `{config['NAME']}`\n- SSL: `{config['SSLMODE']}`")
-        st.divider()
-
     tab_login, tab_reg, tab_rec = st.tabs(["🔒 Log In", "📝 Register", "🔑 Recovery"])
 
     with tab_login:

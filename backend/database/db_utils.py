@@ -111,7 +111,7 @@ def initialize_tables():
                 status VARCHAR(20) DEFAULT 'active',
                 is_verified BOOLEAN DEFAULT FALSE,
                 failed_logins INT DEFAULT 0,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -124,7 +124,7 @@ def initialize_tables():
                 age INT,
                 gender VARCHAR(50),
                 contact VARCHAR(100),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -134,7 +134,7 @@ def initialize_tables():
                 id SERIAL PRIMARY KEY,
                 user_id INT REFERENCES users(id) ON DELETE CASCADE,
                 patient_id INT REFERENCES patients(id) ON DELETE CASCADE,
-                visit_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                visit_date TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
                 source_type VARCHAR(50) NOT NULL,
                 session_status VARCHAR(50) DEFAULT 'Completed'
             )
@@ -166,7 +166,7 @@ def initialize_tables():
                 confidence_low DECIMAL(5,4),
                 confidence_high DECIMAL(5,4),
                 model_version VARCHAR(50) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -179,7 +179,7 @@ def initialize_tables():
                 severity VARCHAR(50) NOT NULL,
                 observation_text TEXT NOT NULL,
                 guideline_ref VARCHAR(255),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -191,7 +191,7 @@ def initialize_tables():
                 action_type VARCHAR(255) NOT NULL,
                 details TEXT,
                 ip_address VARCHAR(50),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -200,7 +200,7 @@ def initialize_tables():
             CREATE TABLE IF NOT EXISTS system_settings (
                 key VARCHAR(255) PRIMARY KEY,
                 value TEXT NOT NULL,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -210,10 +210,10 @@ def initialize_tables():
                 id SERIAL PRIMARY KEY,
                 email_or_contact VARCHAR(255) NOT NULL,
                 otp_code VARCHAR(10) NOT NULL,
-                expiry_time TIMESTAMP DEFAULT (now() + interval '10 minutes'),
+                expiry_time TIMESTAMPTZ DEFAULT (now() + interval '10 minutes'),
                 failed_attempts INT DEFAULT 0,
                 is_used BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -225,7 +225,7 @@ def initialize_tables():
                 ip_address VARCHAR(50),
                 device VARCHAR(255),
                 status VARCHAR(50) NOT NULL,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                timestamp TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
