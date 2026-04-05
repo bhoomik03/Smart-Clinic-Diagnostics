@@ -55,6 +55,10 @@ def get_db_connection():
             port=DB_PORT,
             sslmode=DB_SSLMODE
         )
+        # --- SOURCE LEVEL TIMEZONE SYNC (Neon to IST) ---
+        cursor = conn.cursor()
+        cursor.execute("SET timezone = 'Asia/Kolkata';")
+        cursor.close()
         return conn
     except Exception as e:
         print(f"Error connecting to the database: {e}")

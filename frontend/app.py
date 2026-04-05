@@ -2225,7 +2225,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 'session_id': 'first' # Required for deep-drill fetching
             }).reset_index().sort_values('Date', ascending=False)
             
-            grouped['DateStr'] = grouped['Date'].dt.strftime('%b %d, %Y  %H:%M')
+            grouped['DateStr'] = grouped['Date'].dt.strftime('%b %d, %Y  %H:%M (IST)')
             
             # ── PRE-CALCULATE ANALYTICS DATA ────────────────────────────────────
             total_sessions = len(grouped)
@@ -2407,6 +2407,14 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 st.markdown('<div style="height:20px; border-top:1px solid #F1F5F9; margin: 20px 0;"></div>', unsafe_allow_html=True)
 
             with h_tab3:
+                # ── REFRESH & SYNC ACTION ──────────────────────────────────────
+                col_ref, col_space = st.columns([1, 3])
+                with col_ref:
+                    if st.button("🔄 Sync System & Refresh", use_container_width=True, type="secondary"):
+                        st.cache_data.clear()
+                        st.rerun()
+                st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
+
                 # ── DIAGNOSTIC HISTORY BLOCKS ─────────────────────────────────────
                 if not grouped.empty:
                     # Show all sessions (including the most recent one)
