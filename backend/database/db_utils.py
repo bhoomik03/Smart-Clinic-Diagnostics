@@ -6,16 +6,18 @@ import bcrypt
 import pandas as pd
 import datetime
 
-# Attempt to load secrets from Streamlit for production reliability
-try:
-    import streamlit as st
-    ST_SECRETS = st.secrets
-except ImportError:
-    ST_SECRETS = {}
-
 def get_env_var(key, default):
     """Helper to get variables from Streamlit Secrets or Environment Variables."""
-    val = ST_SECRETS.get(key, os.environ.get(key, default))
+    val = os.environ.get(key, default)
+    
+    # Check Streamlit Secrets as fallback for production
+    if val == default:
+        try:
+            import streamlit as st
+            val = st.secrets.get(key, default)
+        except:
+            pass
+            
     if isinstance(val, str):
         return val.strip().replace("\n", "").replace("\r", "")
     return val
