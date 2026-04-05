@@ -8,8 +8,22 @@ import datetime as dt_module
 import pytz
 
 def get_ist_now():
-    """Returns the current time in Asia/Kolkata (IST)."""
-    return dt_module.datetime.now(pytz.timezone('Asia/Kolkata'))
+    """Returns the current time in Asia/Kolkata (IST) as an aware object."""
+    ist_tz = pytz.timezone('Asia/Kolkata')
+    return dt_module.datetime.now(ist_tz)
+
+def ensure_ist(dt_obj):
+    """Safety helper to force ANY datetime object to be an aware IST timestamp."""
+    if dt_obj is None: return None
+    ist_tz = pytz.timezone('Asia/Kolkata')
+    try:
+        if dt_obj.tzinfo is None:
+            # Naive: assume UTC (standard DB behavior) and convert to IST
+            return pytz.utc.localize(dt_obj).astimezone(ist_tz)
+        # Aware: accurately shift to IST
+        return dt_obj.astimezone(ist_tz)
+    except:
+        return dt_obj
 
 def get_env_var(key, default):
     """Helper to get variables from Streamlit Secrets or Environment Variables."""
@@ -1306,9 +1320,8 @@ def store_otp(email_or_contact, otp_code, expiry_minutes=5):
     conn = get_db_connection()
     if not conn: return False
     try:
-        # Robust Aware Calculation
-        ist_tz = pytz.timezone('Asia/Kolkata')
-        now_ist = dt_module.datetime.now(ist_tz)
+        # Bulletproof Aware Calculation
+        now_ist = get_ist_now()
         expiry = now_ist + dt_module.timedelta(minutes=expiry_minutes)
         
         cursor = conn.cursor()
@@ -1348,15 +1361,11 @@ def verify_otp_db(email_or_contact, entered_otp):
                 conn.commit()
                 return False, "Too many failed attempts. Request a new OTP."
                 
-            # Forced Aware Comparison Safety
-            ist_tz = pytz.timezone('Asia/Kolkata')
-            now_ist = dt_module.datetime.now(ist_tz)
+            # Final Bulletproof Aware Comparison Safety
+            now_ist = get_ist_now()
+            expiry_ist = ensure_ist(expiry_time)
             
-            # If retrieved from DB as naive, localize as IST (since it's TIMESTAMPTZ)
-            if expiry_time.tzinfo is None:
-                expiry_time = pytz.utc.localize(expiry_time).astimezone(ist_tz)
-            
-            if now_ist > expiry_time:
+            if now_ist > expiry_ist:
                 cursor.execute("UPDATE otp_verification SET is_used = TRUE WHERE id = %s", (otp_id,))
                 conn.commit()
                 return False, "OTP has expired."
