@@ -226,20 +226,6 @@ def initialize_tables():
         except Exception as e:
             print(f"Warning: ALTER TABLE migration in initialize_tables: {e}")
             conn.rollback()
-        # --- MIGRATION: PERMANENT IST SYNC (Neon Level) ---
-        try:
-            # 1. Convert columns to Timezone-Aware (TIMESTAMPTZ)
-            cursor.execute("ALTER TABLE users ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE USING created_at AT TIME ZONE 'UTC';")
-            cursor.execute("ALTER TABLE patients ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE USING created_at AT TIME ZONE 'UTC';")
-            cursor.execute("ALTER TABLE diagnostic_sessions ALTER COLUMN visit_date TYPE TIMESTAMP WITH TIME ZONE USING visit_date AT TIME ZONE 'UTC';")
-            
-            # 2. Set global Database/Role default to Asia/Kolkata
-            cursor.execute("ALTER DATABASE " + DB_NAME + " SET timezone TO 'Asia/Kolkata';")
-            cursor.execute("ALTER ROLE " + DB_USER + " SET timezone TO 'Asia/Kolkata';")
-            
-            print("NEON MIGRATION: Permanent IST Sync Completed for Role & Database.")
-        except Exception as e:
-            print(f"Neon Migration Warning (Non-Critical): {e}")
 
         conn.commit()
     except Exception as e:
@@ -402,7 +388,7 @@ def get_patient_history(user_id=None):
         o.condition_name as rule_disease, 
         o.severity, 
         o.observation_text,
-        (s.visit_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') as timestamp, 
+        s.visit_date as timestamp, 
         s.id as session_id
     FROM patients p
     JOIN diagnostic_sessions s ON p.id = s.patient_id
@@ -544,18 +530,18 @@ def get_system_utilization(start_date=None, end_date=None):
         params = [start_date, next_day]
 
     reg_query = f"""
-    SELECT DATE(created_at AT TIME ZONE 'Asia/Kolkata') as scan_date, COUNT(*) as count
+    SELECT DATE(created_at + interval '5 hours 30 minutes') as scan_date, COUNT(*) as count
     FROM users
     {date_filter_reg}
-    GROUP BY DATE(created_at AT TIME ZONE 'Asia/Kolkata')
+    GROUP BY DATE(created_at + interval '5 hours 30 minutes')
     ORDER BY scan_date ASC
     """
     
     sess_query = f"""
-    SELECT DATE(visit_date AT TIME ZONE 'Asia/Kolkata') as scan_date, COUNT(*) as count
+    SELECT DATE(visit_date + interval '5 hours 30 minutes') as scan_date, COUNT(*) as count
     FROM diagnostic_sessions
     {date_filter_sess}
-    GROUP BY DATE(visit_date AT TIME ZONE 'Asia/Kolkata')
+    GROUP BY DATE(visit_date + interval '5 hours 30 minutes')
     ORDER BY scan_date ASC
     """
     
@@ -950,7 +936,7 @@ def get_user_dashboard_stats(user_id):
         stats['total_diagnoses'] = cursor.fetchone()[0]
 
         # Last visit date
-        cursor.execute("SELECT MAX(visit_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') FROM diagnostic_sessions WHERE user_id = %s", (user_id,))
+        cursor.execute("SELECT MAX(visit_date) FROM diagnostic_sessions WHERE user_id = %s", (user_id,))
         last_visit = cursor.fetchone()[0]
         stats['last_visit'] = last_visit.strftime('%d %b %Y') if last_visit else 'No visits yet'
 
@@ -972,7 +958,7 @@ def get_user_dashboard_stats(user_id):
 
         # Recent 5 activity records
         recent_query = """
-            SELECT p.name, o.condition_name, o.severity, (s.visit_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') as visit_date
+            SELECT p.name, o.condition_name, o.severity, s.visit_date
             FROM clinical_observations o
             JOIN diagnostic_sessions s ON o.session_id = s.id
             JOIN patients p ON s.patient_id = p.id
@@ -1325,7 +1311,7 @@ def get_login_history(user_id=None, limit=100):
     conn = get_db_connection()
     if not conn: return pd.DataFrame()
     try:
-        query = "SELECT l.id, u.username, l.ip_address, l.device, l.status, (l.timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') as timestamp FROM login_history l JOIN users u ON l.user_id = u.id "
+        query = "SELECT l.id, u.username, l.ip_address, l.device, l.status, l.timestamp FROM login_history l JOIN users u ON l.user_id = u.id "
         params = []
         if user_id:
             query += "WHERE l.user_id = %s "
@@ -1346,7 +1332,7 @@ def get_filtered_audit_logs(search_term=None, action_type=None, start_date=None,
     conn = get_db_connection()
     if not conn: return pd.DataFrame()
     try:
-        query = "SELECT a.id, COALESCE(u.username, 'System') as username, a.action_type, a.details, a.ip_address, (a.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') as created_at FROM audit_logs a LEFT JOIN users u ON a.user_id = u.id WHERE 1=1 "
+        query = "SELECT a.id, COALESCE(u.username, 'System') as username, a.action_type, a.details, a.ip_address, a.created_at FROM audit_logs a LEFT JOIN users u ON a.user_id = u.id WHERE 1=1 "
         params = []
         
         if search_term:
