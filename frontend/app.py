@@ -420,13 +420,19 @@ def evaluate_manual_clinical_risk(data, target_block=None):
         'heart': ['Chest Pain Severity', 'Exercise Induced Angina', 'Major Vessel Blockage', 'Resting ECG', 'ST Depression', 'Max Heart Rate', 'ST Slope', 'Thalassemia'],
         'core_vitals': ['Systolic BP', 'Diastolic BP', 'Glucose', 'BMI', 'Heart Rate', 'Oxygen Saturation', 'Body Temperature', 'Total Cholesterol'],
         'pathology': ['Creatinine', 'Hemoglobin', 'WBC', 'Platelets', 'AST', 'ALT', 'CRP', 'Typhoid', 'Dengue'],
-        'general': ['Fever', 'Cough', 'Fatigue']
+        'general': ['Fever', 'Cough', 'Fatigue', 'Sore throat', 'Headache', 'Shortness of breath', 'Runny nose', 'Body ache']
     }
     
     def is_allowed(param_name):
         if not target_block: return True # Show all if no target (standard/OCR mode)
         allowed_list = block_map.get(target_block, [])
         return any(a.lower() in param_name.lower() for a in allowed_list)
+
+    # General Symptoms Processing
+    for i in range(1, 4):
+        s_val = data.get(f'symptom_{i}')
+        if s_val and s_val != "None" and is_allowed(s_val):
+            results.append({'param': s_val, 'val': s_val, 'status': 'HIGH', 'msg': f'[SYMPTOM] Persistent {s_val} reported'})
 
     sys = data.get('systolic')
     if sys is not None and sys > 0 and is_allowed('Systolic BP'):
