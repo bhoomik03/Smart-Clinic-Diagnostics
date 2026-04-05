@@ -469,7 +469,7 @@ def get_patient_history(user_id=None):
         o.condition_name as rule_disease, 
         o.severity, 
         o.observation_text,
-        s.visit_date as timestamp, 
+        s.visit_date AT TIME ZONE 'Asia/Kolkata' as timestamp, 
         s.id as session_id
     FROM patients p
     JOIN diagnostic_sessions s ON p.id = s.patient_id
@@ -611,18 +611,18 @@ def get_system_utilization(start_date=None, end_date=None):
         params = [start_date, next_day]
 
     reg_query = f"""
-    SELECT DATE(created_at) as scan_date, COUNT(*) as count
+    SELECT DATE(created_at AT TIME ZONE 'Asia/Kolkata') as scan_date, COUNT(*) as count
     FROM users
     {date_filter_reg}
-    GROUP BY DATE(created_at)
+    GROUP BY DATE(created_at AT TIME ZONE 'Asia/Kolkata')
     ORDER BY scan_date ASC
     """
     
     sess_query = f"""
-    SELECT DATE(visit_date) as scan_date, COUNT(*) as count
+    SELECT DATE(visit_date AT TIME ZONE 'Asia/Kolkata') as scan_date, COUNT(*) as count
     FROM diagnostic_sessions
     {date_filter_sess}
-    GROUP BY DATE(visit_date)
+    GROUP BY DATE(visit_date AT TIME ZONE 'Asia/Kolkata')
     ORDER BY scan_date ASC
     """
     
@@ -838,7 +838,7 @@ def get_all_users():
     if not conn:
         return pd.DataFrame()
     try:
-        query = "SELECT id, username, role, name, email, contact, status, created_at FROM users ORDER BY created_at DESC"
+        query = "SELECT id, username, role, name, email, contact, status, created_at AT TIME ZONE 'Asia/Kolkata' as created_at FROM users ORDER BY created_at DESC"
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', UserWarning)
@@ -857,7 +857,7 @@ def get_registration_data():
     if not conn:
         return pd.DataFrame()
     try:
-        query = "SELECT id, name, age, gender, email, contact, address, status, created_at FROM users ORDER BY created_at DESC"
+        query = "SELECT id, name, age, gender, email, contact, address, status, created_at AT TIME ZONE 'Asia/Kolkata' as created_at FROM users ORDER BY created_at DESC"
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', UserWarning)
@@ -982,7 +982,7 @@ def get_audit_logs(limit=100, start_date=None, end_date=None):
     conn = get_db_connection()
     if not conn: return pd.DataFrame()
     try:
-        query = "SELECT id, action_type, details, created_at FROM audit_logs "
+        query = "SELECT id, action_type, details, created_at AT TIME ZONE 'Asia/Kolkata' as created_at FROM audit_logs "
         params = []
         if start_date and end_date:
             query += "WHERE created_at BETWEEN %s AND %s "
@@ -1039,7 +1039,7 @@ def get_user_dashboard_stats(user_id):
 
         # Recent 5 activity records
         recent_query = """
-            SELECT p.name, o.condition_name, o.severity, s.visit_date
+            SELECT p.name, o.condition_name, o.severity, s.visit_date AT TIME ZONE 'Asia/Kolkata' as visit_date
             FROM clinical_observations o
             JOIN diagnostic_sessions s ON o.session_id = s.id
             JOIN patients p ON s.patient_id = p.id
@@ -1223,7 +1223,7 @@ def get_all_patients_admin():
             warnings.simplefilter('ignore', UserWarning)
             # Join with users to get the account owner's username
             query = """
-                SELECT p.id, u.username, p.name, p.age, p.gender, p.contact, p.created_at 
+                SELECT p.id, u.username, p.name, p.age, p.gender, p.contact, p.created_at AT TIME ZONE 'Asia/Kolkata' as created_at 
                 FROM patients p
                 LEFT JOIN users u ON p.user_id = u.id
                 ORDER BY p.created_at DESC
@@ -1392,12 +1392,12 @@ def get_login_history(user_id=None, limit=100):
     conn = get_db_connection()
     if not conn: return pd.DataFrame()
     try:
-        query = "SELECT l.id, u.username, l.ip_address, l.device, l.status, l.timestamp FROM login_history l JOIN users u ON l.user_id = u.id "
+        query = "SELECT l.id, u.username, l.ip_address, l.device, l.status, l.timestamp AT TIME ZONE 'Asia/Kolkata' as timestamp FROM login_history l JOIN users u ON l.user_id = u.id "
         params = []
         if user_id:
             query += "WHERE l.user_id = %s "
             params.append(user_id)
-        query += "ORDER BY l.timestamp DESC LIMIT %s"
+        query += f"ORDER BY l.timestamp DESC LIMIT %s"
         params.append(limit)
         
         import warnings
@@ -1413,7 +1413,7 @@ def get_filtered_audit_logs(search_term=None, action_type=None, start_date=None,
     conn = get_db_connection()
     if not conn: return pd.DataFrame()
     try:
-        query = "SELECT a.id, COALESCE(u.username, 'System') as username, a.action_type, a.details, a.ip_address, a.created_at FROM audit_logs a LEFT JOIN users u ON a.user_id = u.id WHERE 1=1 "
+        query = "SELECT a.id, COALESCE(u.username, 'System') as username, a.action_type, a.details, a.ip_address, a.created_at AT TIME ZONE 'Asia/Kolkata' as created_at FROM audit_logs a LEFT JOIN users u ON a.user_id = u.id WHERE 1=1 "
         params = []
         
         if search_term:
