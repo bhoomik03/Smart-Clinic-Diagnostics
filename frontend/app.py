@@ -1693,7 +1693,6 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
     with tab2:
         def fill_demo_data(mode):
             st.session_state.demo_mode = mode
-            st.session_state.auto_submit = True
             
             if mode == "NORMAL":
                 st.session_state.mi_sys = 115
