@@ -830,7 +830,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": disease_name, "severity": ht_eval["category"], "reason": ht_eval["reason"], "advice": advice})
             
     # --- 4. BMI / OBESITY LOGIC ---
-    if (not target_block or target_block in ['obesity', 'core_vitals']) and 'bmi' in extracted_data:
+    if (not target_block or target_block in ['obesity', 'core_vitals', 'diabetes']) and 'bmi' in extracted_data:
         bmi_val = extracted_data['bmi']
         if bmi_val >= 30: 
             risk_data["Obesity/BMI"] = 0.85
@@ -848,7 +848,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": "High Cholesterol", "severity": chol_eval["category"], "reason": chol_eval["reason"], "advice": advice})
             
     # --- 5. KIDNEY DISEASE LOGIC ---
-    if (not target_block or target_block == 'kidney') and 'creatinine' in extracted_data:
+    if (not target_block or target_block in ['kidney', 'pathology']) and 'creatinine' in extracted_data:
         kd_eval = evaluate_kidney_disease(extracted_data['creatinine'])
         if kd_eval["detected"]:
             risk_data["Kidney Function"] = 1.0 if kd_eval["category"] == "Critical" else 0.7
@@ -856,7 +856,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": "Kidney Disease", "severity": kd_eval["category"], "reason": kd_eval["reason"], "advice": advice})
             
     # --- 6. HAEMOGRAM LOGIC ---
-    if (not target_block or target_block == 'haemogram') and any(k in extracted_data for k in ['hb', 'wbc', 'platelets']):
+    if (not target_block or target_block in ['haemogram', 'pathology']) and any(k in extracted_data for k in ['hb', 'wbc', 'platelets']):
         haem_eval = evaluate_haemogram(hb=extracted_data.get('hb'), wbc=extracted_data.get('wbc'), platelets=extracted_data.get('platelets'))
         if haem_eval["detected"]:
             risk_data["Blood (Haemogram)"] = 1.0 if haem_eval["category"] == "Critical" else 0.7
@@ -915,7 +915,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 })
 
     # --- 11. GENERAL VITALS (HR, TEMP, O2) LOGIC ---
-    if not target_block or target_block == 'core_vitals':
+    if not target_block or target_block in ['core_vitals', 'general']:
         if 'heart_rate_bpm' in extracted_data:
             hr_eval = evaluate_heart_rate(extracted_data['heart_rate_bpm'])
             if hr_eval["detected"]:
