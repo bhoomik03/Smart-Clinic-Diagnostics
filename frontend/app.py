@@ -1435,12 +1435,24 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 """, unsafe_allow_html=True)
                 
                 def sync_profile_to_db():
-                    p = st.session_state.patient_profile
+                    # Extract directly from widget keys to ensure we have the LATEST typed/selected value during callback
+                    new_name = st.session_state.get('nav_name', st.session_state.patient_profile['name'])
+                    new_age = st.session_state.get('nav_age', st.session_state.patient_profile['age'])
+                    new_gender = st.session_state.get('nav_gender', st.session_state.patient_profile['gender'])
+                    new_email = st.session_state.get('nav_email', st.session_state.patient_profile['email'])
+                    new_contact = st.session_state.get('nav_contact', st.session_state.patient_profile['contact'])
+                    new_address = st.session_state.get('nav_address', st.session_state.patient_profile['address'])
+                    
                     success, msg = update_user_info(
-                        user_id, p['name'], p['age'], p['gender'], 
-                        p['email'], p['contact'], p['address']
+                        user_id, new_name, new_age, new_gender, 
+                        new_email, new_contact, new_address
                     )
                     if success:
+                        # Update the persistent dictionary so other UI components (like headers) reflect changes
+                        st.session_state.patient_profile.update({
+                            'name': new_name, 'age': new_age, 'gender': new_gender,
+                            'email': new_email, 'contact': new_contact, 'address': new_address
+                        })
                         st.toast("✅ Profile Auto-Saved", icon="💾")
                     else:
                         st.error(f"Save Failed: {msg}")

@@ -872,13 +872,21 @@ def update_user_info(user_id, name, age, gender, email, contact, address):
     if not conn: return False, "Database connection failed"
     try:
         cursor = conn.cursor()
+        # Explicitly cast to int to prevent type mismatch during WHERE clause matching
+        safe_uid = int(user_id)
         cursor.execute("""
             UPDATE users 
             SET name = %s, age = %s, gender = %s, email = %s, contact = %s, address = %s 
             WHERE id = %s
-        """, (name, age, gender, email, contact, address, user_id))
+        """, (name, age, gender, email, contact, address, safe_uid))
+        
+        row_count = cursor.rowcount
         conn.commit()
-        return True, "Profile updated successfully."
+        
+        if row_count > 0:
+            return True, "Profile updated successfully."
+        else:
+            return False, f"User ID {safe_uid} not found in database. No rows updated."
     except Exception as e:
         if conn: conn.rollback()
         return False, f"Failed to update profile: {e}"
