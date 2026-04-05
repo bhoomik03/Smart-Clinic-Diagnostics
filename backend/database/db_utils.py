@@ -530,18 +530,18 @@ def get_system_utilization(start_date=None, end_date=None):
         params = [start_date, next_day]
 
     reg_query = f"""
-    SELECT DATE(created_at + interval '5 hours 30 minutes') as scan_date, COUNT(*) as count
+    SELECT DATE(created_at) as scan_date, COUNT(*) as count
     FROM users
     {date_filter_reg}
-    GROUP BY DATE(created_at + interval '5 hours 30 minutes')
+    GROUP BY DATE(created_at)
     ORDER BY scan_date ASC
     """
     
     sess_query = f"""
-    SELECT DATE(visit_date + interval '5 hours 30 minutes') as scan_date, COUNT(*) as count
+    SELECT DATE(visit_date) as scan_date, COUNT(*) as count
     FROM diagnostic_sessions
     {date_filter_sess}
-    GROUP BY DATE(visit_date + interval '5 hours 30 minutes')
+    GROUP BY DATE(visit_date)
     ORDER BY scan_date ASC
     """
     
