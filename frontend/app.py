@@ -6,7 +6,21 @@ import re
 import plotly.express as px
 import plotly.graph_objects as go
 import base64
-from datetime import datetime
+import datetime
+import pytz
+
+# Centralized IST Helper
+def localize_ist(dt_obj):
+    """Safely converts ANY timestamp (aware or naive) to Asia/Kolkata (IST)."""
+    if dt_obj is None: return "N/A"
+    ist_tz = pytz.timezone('Asia/Kolkata')
+    try:
+        # If naive, assume it's UTC and localize
+        if dt_obj.tzinfo is None:
+            dt_obj = pytz.utc.localize(dt_obj)
+        return dt_obj.astimezone(ist_tz)
+    except:
+        return dt_obj
 
 # Add the backend path to sys.path to easily import modules
 backend_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'backend')
@@ -614,7 +628,9 @@ def evaluate_manual_clinical_risk(data, target_block=None):
 
 def get_report_html(patient_name, patient_age, patient_gender, conditions):
     """Generates a professional diagnostic report in HTML format."""
-    date_str = datetime.now().strftime("%d %b %Y, %H:%M")
+    # Ensure IST date string
+    ist_now = localize_ist(datetime.datetime.now())
+    date_str = ist_now.strftime("%d %b %Y, %H:%M")
     
     conditions_html = ""
     for c in conditions:
@@ -1666,7 +1682,12 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
         recent_df = dash_stats.get('recent_activity', pd.DataFrame())
         if not recent_df.empty:
             recent_df.columns = ['Patient', 'Condition', 'Severity', 'Date']
-            recent_df['Date'] = pd.to_datetime(recent_df['Date']).dt.strftime('%d %b %Y, %H:%M')
+            # Ensure IST localization for Recent Activity
+            def format_row_date(d):
+                dt = pd.to_datetime(d)
+                return localize_ist(dt).strftime('%d %b %Y, %H:%M IST')
+                
+            recent_df['Date'] = recent_df['Date'].apply(format_row_date)
             
             # Styled activity cards
             for _, row in recent_df.iterrows():
@@ -2226,17 +2247,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             }).reset_index().sort_values('Date', ascending=False)
             
             # Ensure aware timestamp before formatting
-            def format_ist(dt_obj):
-                try:
-                    if dt_obj.tzinfo is None:
-                        # If naive (it shouldn't be with my DB fix, but for safety), treat as UTC then convert
-                        return dt_obj.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).strftime('%b %d, %Y  %H:%M (IST)')
-                    # If already aware, just ensure IST shift
-                    return dt_obj.astimezone(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).strftime('%b %d, %Y  %H:%M (IST)')
-                except:
-                    return str(dt_obj)
-            
-            grouped['DateStr'] = grouped['Date'].apply(format_ist)
+            grouped['DateStr'] = grouped['Date'].apply(lambda x: localize_ist(x).strftime('%b %d, %Y  %H:%M IST'))
             
             # ── PRE-CALCULATE ANALYTICS DATA ────────────────────────────────────
             total_sessions = len(grouped)

@@ -5,6 +5,11 @@ import os
 import bcrypt
 import pandas as pd
 import datetime
+import pytz
+
+def get_ist_now():
+    """Returns the current time in Asia/Kolkata (IST)."""
+    return datetime.datetime.now(pytz.timezone('Asia/Kolkata'))
 
 def get_env_var(key, default):
     """Helper to get variables from Streamlit Secrets or Environment Variables."""
@@ -1029,7 +1034,16 @@ def get_user_dashboard_stats(user_id):
         # Last visit date
         cursor.execute("SELECT MAX(visit_date) FROM diagnostic_sessions WHERE user_id = %s", (user_id,))
         last_visit = cursor.fetchone()[0]
-        stats['last_visit'] = last_visit.strftime('%d %b %Y') if last_visit else 'No visits yet'
+        # Ensure IST display for the metric
+        if last_visit:
+            ist_tz = pytz.timezone('Asia/Kolkata')
+            if last_visit.tzinfo is None:
+                last_visit = pytz.utc.localize(last_visit).astimezone(ist_tz)
+            else:
+                last_visit = last_visit.astimezone(ist_tz)
+            stats['last_visit'] = last_visit.strftime('%d %b %Y, %H:%M IST')
+        else:
+            stats['last_visit'] = 'No visits yet'
 
         # High-risk alerts (High or Critical severity observations)
         cursor.execute("""
