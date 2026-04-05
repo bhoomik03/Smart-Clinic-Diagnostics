@@ -2666,7 +2666,7 @@ def render_admin_dashboard():
                         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                         font_color='#1E293B', title_font_size=20,
                         margin=dict(t=50, b=20, l=10, r=10),
-                        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1, type='date'),
+                        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1, type='category'),
                         yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1)
                     )
                     st.plotly_chart(fig_reg, use_container_width=True)
@@ -2686,7 +2686,7 @@ def render_admin_dashboard():
                         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                         font_color='#1E293B', title_font_size=20,
                         margin=dict(t=50, b=20, l=10, r=10),
-                        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1, type='date'),
+                        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1, type='category'),
                         yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1)
                     )
                     st.plotly_chart(fig_sess, use_container_width=True)
