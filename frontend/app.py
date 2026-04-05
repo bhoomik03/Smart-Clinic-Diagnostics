@@ -2004,11 +2004,12 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             # Reset indicators if reset button was clicked (handled elsewhere)
             
             # Evaluate dynamically
-            dynamic_results = evaluate_manual_clinical_risk(manual_data, target_block=st.session_state.active_block)
+            active_block = st.session_state.get('active_block')
+            dynamic_results = evaluate_manual_clinical_risk(manual_data, target_block=active_block)
             
             # Filter results based on active block
             filtered_results = []
-            if st.session_state.active_block:
+            if active_block:
                 # Map parameters to blocks for better UX as requested
                 block_map = {
                     'diabetes': ['Glucose', 'Insulin', 'BMI', 'Pregnancies', 'Diabetes Pedigree'],
@@ -2017,7 +2018,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                     'pathology': ['Creatinine', 'Hemoglobin', 'WBC', 'Platelets', 'AST', 'ALT', 'CRP', 'Typhoid', 'Dengue'],
                     'general': ['Fever', 'Cough', 'Fatigue', 'Shortness of breath']
                 }
-                allowed = block_map.get(st.session_state.active_block, [])
+                allowed = block_map.get(active_block, [])
                 filtered_results = [r for r in dynamic_results if any(a.lower() in r['param'].lower() for a in allowed)]
 
             render_luxury_header("Live Clinical Risk Indicators", icon="🔴")
@@ -2035,8 +2036,8 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
             # --- STEP 2: FULL REPORT (Only if a block is active) ---
-            if st.session_state.active_block:
-                st.success(f"✅ **{st.session_state.active_block.upper()}** appraisal complete. You can now generate the full AI report.")
+            if active_block:
+                st.success(f"✅ **{active_block.upper()}** appraisal complete. You can now generate the full AI report.")
                 submit_btn = st.form_submit_button("📊 Generate Comprehensive Auto-Diagnostic Report (Targeted Pipeline)", type="primary", width="stretch")
             else:
                 submit_btn = False
@@ -2068,7 +2069,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                     patient_info=st.session_state.patient_profile, 
                     user_id=user_id, 
                     tabs=(tab_obs, tab_risk, tab_det),
-                    target_block=st.session_state.active_block
+                    target_block=st.session_state.get('active_block')
                 )
             
             # Smooth scrolling to the results container
