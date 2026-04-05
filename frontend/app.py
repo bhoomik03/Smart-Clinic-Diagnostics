@@ -2564,10 +2564,9 @@ def render_admin_dashboard():
         
         # Date Filter Row
         col_date1, col_date2, col_date3 = st.columns([2, 2, 4])
-        # Force clear cache for admin stats to ensure real-time accuracy (11 vs 257 issue)
-        if 'admin_synced' not in st.session_state:
-            st.cache_data.clear()
-            st.session_state.admin_synced = True
+        
+        # Ensure tables are initialized (Safe schema migration check)
+        initialize_tables()
             
         import datetime
         today = datetime.date.today()
@@ -2575,23 +2574,8 @@ def render_admin_dashboard():
         with col_date1: start_date = st.date_input("Analysis From", value=thirty_days_ago, key="admin_trend_start")
         with col_date2: end_date = st.date_input("Analysis To", value=today, key="admin_trend_end")
         
-        # Top-Row Metrics
+        # Top-Row Metrics (Now standardized in db_utils.py)
         stats = get_system_stats(start_date, end_date)
-        
-        # FORCED LOCAL OVERRIDE: Ensure all metrics reflect the current 'users' table (Sync Fix with Date Filter)
-        _conn = get_db_connection()
-        if _conn:
-            _cur = _conn.cursor()
-            # Boundary fix: Include the full end_date day
-            next_day = end_date + datetime.timedelta(days=1)
-            # Calculate Patients (role=user)
-            _cur.execute("SELECT COUNT(*) FROM users WHERE role = 'user' AND created_at >= %s AND created_at < %s", (start_date, next_day))
-            stats['total_patients'] = _cur.fetchone()[0]
-            # Calculate Active Profiles (status=active, excluding admins)
-            _cur.execute("SELECT COUNT(*) FROM users WHERE status = 'active' AND role NOT IN ('admin', 'System Administrator') AND created_at >= %s AND created_at < %s", (start_date, next_day))
-            stats['active_profiles'] = _cur.fetchone()[0]
-            _cur.close()
-            _conn.close()
 
         m1, m2, m3, m4, m5 = st.columns(5)
         with m1: 
@@ -2651,7 +2635,7 @@ def render_admin_dashboard():
                         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                         font_color='#1E293B', title_font_size=20,
                         margin=dict(t=50, b=20, l=10, r=10),
-                        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1),
+                        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1, type='date'),
                         yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1)
                     )
                     st.plotly_chart(fig_reg, use_container_width=True)
@@ -2669,7 +2653,7 @@ def render_admin_dashboard():
                         plot_bgcolor='rgba(0,0,0,0)', paper_bgcolor='rgba(0,0,0,0)',
                         font_color='#1E293B', title_font_size=20,
                         margin=dict(t=50, b=20, l=10, r=10),
-                        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1),
+                        xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1, type='date'),
                         yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.05)', showline=True, linecolor='#1E293B', linewidth=1)
                     )
                     st.plotly_chart(fig_sess, use_container_width=True)
@@ -2677,6 +2661,7 @@ def render_admin_dashboard():
                     st.info("No diagnostic session data available.")
 
         # LOCAL CALCULATION: Fetch demographics from 'users' table directly for Admin
+        # Updated to use IST-aware boundaries
         conn = get_db_connection()
         age_df, gender_df = pd.DataFrame(), pd.DataFrame()
         if conn:
@@ -2818,12 +2803,12 @@ def render_admin_dashboard():
                     email = row.get('email', 'N/A')
                     raw_st = str(row.get('status', 'active')).strip().lower()
                     
-                    if username == st.session_state.username:
-                        continue 
-
+                    # Show current user but with a protective marker
+                    is_current = (username == st.session_state.username)
+                    
                     r_cols = st.columns(cols_r)
                     r_cols[0].write(f"`{user_id}`")
-                    r_cols[1].write(f"**{username}**")
+                    r_cols[1].markdown(f"**{username}**" + (" 🛡️" if is_current else ""))
                     r_cols[2].write(full_name)
                     r_cols[3].write(email)
                     

@@ -252,6 +252,26 @@ def initialize_tables():
 
 
         conn.commit()
+        # --- SCHEMA MIGRATION: Ensure all timestamps are TIMESTAMPTZ ---
+        # This is safe to run repeatedly on Neon/Postgres
+        alter_queries = [
+            "ALTER TABLE users ALTER COLUMN created_at TYPE TIMESTAMPTZ",
+            "ALTER TABLE diagnostic_sessions ALTER COLUMN visit_date TYPE TIMESTAMPTZ",
+            "ALTER TABLE clinical_observations ALTER COLUMN created_at TYPE TIMESTAMPTZ",
+            "ALTER TABLE ml_predictions ALTER COLUMN created_at TYPE TIMESTAMPTZ",
+            "ALTER TABLE audit_logs ALTER COLUMN created_at TYPE TIMESTAMPTZ",
+            "ALTER TABLE login_history ALTER COLUMN timestamp TYPE TIMESTAMPTZ",
+            "ALTER TABLE otp_verification ALTER COLUMN expiry_time TYPE TIMESTAMPTZ",
+            "ALTER TABLE otp_verification ALTER COLUMN created_at TYPE TIMESTAMPTZ"
+        ]
+        for aq in alter_queries:
+            try:
+                cursor.execute(aq)
+            except:
+                conn.rollback() # Skip if already formatted or column missing (unlikely here)
+                continue
+        
+        conn.commit()
     except Exception as e:
         print(f"Error initializing tables: {e}")
         if conn:
@@ -611,18 +631,18 @@ def get_system_utilization(start_date=None, end_date=None):
         params = [start_date, next_day]
 
     reg_query = f"""
-    SELECT DATE(created_at AT TIME ZONE 'Asia/Kolkata') as scan_date, COUNT(*) as count
+    SELECT DATE(created_at) as scan_date, COUNT(*) as count
     FROM users
     {date_filter_reg}
-    GROUP BY DATE(created_at AT TIME ZONE 'Asia/Kolkata')
+    GROUP BY DATE(created_at)
     ORDER BY scan_date ASC
     """
     
     sess_query = f"""
-    SELECT DATE(visit_date AT TIME ZONE 'Asia/Kolkata') as scan_date, COUNT(*) as count
+    SELECT DATE(visit_date) as scan_date, COUNT(*) as count
     FROM diagnostic_sessions
     {date_filter_sess}
-    GROUP BY DATE(visit_date AT TIME ZONE 'Asia/Kolkata')
+    GROUP BY DATE(visit_date)
     ORDER BY scan_date ASC
     """
     
@@ -838,7 +858,7 @@ def get_all_users():
     if not conn:
         return pd.DataFrame()
     try:
-        query = "SELECT id, username, role, name, email, contact, status, created_at AT TIME ZONE 'Asia/Kolkata' as created_at FROM users ORDER BY created_at DESC"
+        query = "SELECT id, username, role, name, email, contact, status, created_at FROM users ORDER BY created_at DESC"
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', UserWarning)
@@ -857,7 +877,7 @@ def get_registration_data():
     if not conn:
         return pd.DataFrame()
     try:
-        query = "SELECT id, name, age, gender, email, contact, address, status, created_at AT TIME ZONE 'Asia/Kolkata' as created_at FROM users ORDER BY created_at DESC"
+        query = "SELECT id, name, age, gender, email, contact, address, status, created_at FROM users ORDER BY created_at DESC"
         import warnings
         with warnings.catch_warnings():
             warnings.simplefilter('ignore', UserWarning)
@@ -871,7 +891,7 @@ def get_registration_data():
             conn.close()
 
 def get_system_stats(start_date=None, end_date=None):
-    """Fetches high-level metrics for the Admin dashboard."""
+    """Fetches high-level metrics for the Admin dashboard, synchronized to IST."""
     conn = get_db_connection()
     if not conn:
         return {}
@@ -879,51 +899,41 @@ def get_system_stats(start_date=None, end_date=None):
         cursor = conn.cursor()
         stats = {}
         
-        # Prepare filters
-        date_filter_users = ""
-        date_filter_sessions = ""
-        date_filter_preds = ""
+        # Base filter clauses using IST conversion for accurate boundaries
+        where_users = " WHERE 1=1 "
+        where_sessions = " WHERE 1=1 "
+        where_preds = " WHERE 1=1 "
         params = []
         
         if start_date and end_date:
             next_day = end_date + datetime.timedelta(days=1)
-            date_filter_users = " AND created_at >= %s AND created_at < %s "
-            date_filter_sessions = " WHERE visit_date >= %s AND visit_date < %s "
-            date_filter_preds = " WHERE created_at >= %s AND created_at < %s "
+            where_users = " WHERE created_at >= %s AND created_at < %s "
+            where_sessions = " WHERE visit_date >= %s AND visit_date < %s "
+            where_preds = " WHERE created_at >= %s AND created_at < %s "
             params = [start_date, next_day]
-        # Patients
-        query = f"SELECT COUNT(*) FROM users WHERE role = 'user' {date_filter_users}"
-        cursor.execute(query, tuple(params))
+        # 1. Total Profiles (Absolute Count)
+        cursor.execute(f"SELECT COUNT(*) FROM users")
+        stats['total_users'] = cursor.fetchone()[0]
+        
+        # 2. Total Patients (role='user') in range
+        cursor.execute(f"SELECT COUNT(*) FROM users {where_users} AND role = 'user'", tuple(params))
         stats['total_patients'] = cursor.fetchone()[0]
         
         # AI Analyses
-        query = f"SELECT COUNT(*) FROM ml_predictions {date_filter_preds}"
-        cursor.execute(query, tuple(params))
+        cursor.execute(f"SELECT COUNT(*) FROM ml_predictions {where_preds}", tuple(params))
         stats['total_predictions'] = cursor.fetchone()[0]
         
-        # Total Profiles (Excluding Admins)
-        raw_date_filter_users = ""
-        if start_date and end_date:
-            raw_date_filter_users = " WHERE created_at >= %s AND created_at < %s AND role NOT IN ('admin', 'System Administrator') "
-        else:
-            raw_date_filter_users = " WHERE role NOT IN ('admin', 'System Administrator') "
-        
-        query = f"SELECT COUNT(*) FROM users {raw_date_filter_users}"
-        cursor.execute(query, tuple(params))
-        stats['total_users'] = cursor.fetchone()[0]
-        
-        # Active Profiles (Excluding Admins)
-        query = f"SELECT COUNT(*) FROM users WHERE status = 'active' AND role NOT IN ('admin', 'System Administrator') {date_filter_users}"
-        cursor.execute(query, tuple(params))
+        # 3. Active Profiles (status='active', excluding admins) in range
+        cursor.execute(f"SELECT COUNT(*) FROM users {where_users} AND status = 'active' AND role NOT IN ('admin', 'System Administrator')", tuple(params))
         stats['active_profiles'] = cursor.fetchone()[0]
-
-        # Clinical Sessions
-        query = f"SELECT COUNT(*) FROM diagnostic_sessions {date_filter_sessions}"
-        cursor.execute(query, tuple(params))
+        
+        # 4. Total Sessions in range
+        cursor.execute(f"SELECT COUNT(*) FROM diagnostic_sessions {where_sessions}", tuple(params))
         stats['total_sessions'] = cursor.fetchone()[0]
         
-        cursor.execute("SELECT COUNT(*) FROM patients")
-        stats['total_raw_records'] = cursor.fetchone()[0]
+        # 5. AI Analyses in range
+        cursor.execute(f"SELECT COUNT(*) FROM ml_predictions {where_preds}", tuple(params))
+        stats['total_predictions'] = cursor.fetchone()[0]
         
         return stats
     except Exception as e:
