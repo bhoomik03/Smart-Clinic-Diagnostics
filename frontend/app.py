@@ -1725,15 +1725,24 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
     # TAB 2: MANUAL ENTRY
     # ---------------------------------------------------------
     with tab2:
+        # --- CROSS-WIDGET SYNCHRONIZATION HELPERS ---
+        def sync_glu_v(): st.session_state.mi_glu_d = st.session_state.mi_glu_v
+        def sync_glu_d(): st.session_state.mi_glu_v = st.session_state.mi_glu_d
+        def sync_bmi_v(): st.session_state.mi_bmi_d = st.session_state.mi_bmi_v
+        def sync_bmi_d(): st.session_state.mi_bmi_v = st.session_state.mi_bmi_d
+
         def fill_demo_data(mode):
             st.session_state.demo_mode = mode
+            st.session_state.auto_submit = True 
             
             if mode == "NORMAL":
                 st.session_state.mi_sys = 115
                 st.session_state.mi_dia = 78
-                st.session_state.mi_glu = 92.0
+                st.session_state.mi_glu_v = 92.0
+                st.session_state.mi_glu_d = 92.0
                 st.session_state.mi_chol = 170.0
-                st.session_state.mi_bmi = 23.0
+                st.session_state.mi_bmi_v = 23.0
+                st.session_state.mi_bmi_d = 23.0
                 st.session_state.mi_oxy = 98
                 st.session_state.mi_hr = 72
                 st.session_state.mi_temp = 36.7
