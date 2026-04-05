@@ -88,7 +88,7 @@ def initialize_tables():
                 address TEXT,
                 status VARCHAR(20) DEFAULT 'active',
                 is_verified BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -101,7 +101,7 @@ def initialize_tables():
                 age INT,
                 gender VARCHAR(50),
                 contact VARCHAR(100),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -111,7 +111,7 @@ def initialize_tables():
                 id SERIAL PRIMARY KEY,
                 user_id INT REFERENCES users(id) ON DELETE CASCADE,
                 patient_id INT REFERENCES patients(id) ON DELETE CASCADE,
-                visit_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                visit_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                 source_type VARCHAR(50) NOT NULL,
                 session_status VARCHAR(50) DEFAULT 'Completed'
             )
@@ -156,7 +156,7 @@ def initialize_tables():
                 severity VARCHAR(50) NOT NULL,
                 observation_text TEXT NOT NULL,
                 guideline_ref VARCHAR(255),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -168,7 +168,7 @@ def initialize_tables():
                 action_type VARCHAR(255) NOT NULL,
                 details TEXT,
                 ip_address VARCHAR(50),
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -177,7 +177,7 @@ def initialize_tables():
             CREATE TABLE IF NOT EXISTS system_settings (
                 key VARCHAR(255) PRIMARY KEY,
                 value TEXT NOT NULL,
-                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         """)
         
@@ -187,10 +187,10 @@ def initialize_tables():
                 id SERIAL PRIMARY KEY,
                 email_or_contact VARCHAR(255) NOT NULL,
                 otp_code VARCHAR(10) NOT NULL,
-                expiry_time TIMESTAMP NOT NULL,
+                expiry_time TIMESTAMP WITH TIME ZONE NOT NULL,
                 failed_attempts INT DEFAULT 0,
                 is_used BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -202,7 +202,7 @@ def initialize_tables():
                 ip_address VARCHAR(50),
                 device VARCHAR(255),
                 status VARCHAR(50) NOT NULL,
-                timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
             )
         """)
 
@@ -226,9 +226,22 @@ def initialize_tables():
         except Exception as e:
             print(f"Warning: ALTER TABLE migration in initialize_tables: {e}")
             conn.rollback()
+        # --- MIGRATION: PERMANENT IST SYNC (Neon Level) ---
+        try:
+            # 1. Convert columns to Timezone-Aware (TIMESTAMPTZ)
+            cursor.execute("ALTER TABLE users ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE USING created_at AT TIME ZONE 'UTC';")
+            cursor.execute("ALTER TABLE patients ALTER COLUMN created_at TYPE TIMESTAMP WITH TIME ZONE USING created_at AT TIME ZONE 'UTC';")
+            cursor.execute("ALTER TABLE diagnostic_sessions ALTER COLUMN visit_date TYPE TIMESTAMP WITH TIME ZONE USING visit_date AT TIME ZONE 'UTC';")
             
+            # 2. Set global Database/Role default to Asia/Kolkata
+            cursor.execute("ALTER DATABASE " + DB_NAME + " SET timezone TO 'Asia/Kolkata';")
+            cursor.execute("ALTER ROLE " + DB_USER + " SET timezone TO 'Asia/Kolkata';")
+            
+            print("NEON MIGRATION: Permanent IST Sync Completed for Role & Database.")
+        except Exception as e:
+            print(f"Neon Migration Warning (Non-Critical): {e}")
+
         conn.commit()
-        
     except Exception as e:
         print(f"Error initializing tables: {e}")
         if conn:
@@ -389,7 +402,7 @@ def get_patient_history(user_id=None):
         o.condition_name as rule_disease, 
         o.severity, 
         o.observation_text,
-        s.visit_date as timestamp, 
+        (s.visit_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') as timestamp, 
         s.id as session_id
     FROM patients p
     JOIN diagnostic_sessions s ON p.id = s.patient_id
@@ -937,7 +950,7 @@ def get_user_dashboard_stats(user_id):
         stats['total_diagnoses'] = cursor.fetchone()[0]
 
         # Last visit date
-        cursor.execute("SELECT MAX(visit_date) FROM diagnostic_sessions WHERE user_id = %s", (user_id,))
+        cursor.execute("SELECT MAX(visit_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') FROM diagnostic_sessions WHERE user_id = %s", (user_id,))
         last_visit = cursor.fetchone()[0]
         stats['last_visit'] = last_visit.strftime('%d %b %Y') if last_visit else 'No visits yet'
 
@@ -959,7 +972,7 @@ def get_user_dashboard_stats(user_id):
 
         # Recent 5 activity records
         recent_query = """
-            SELECT p.name, o.condition_name, o.severity, s.visit_date
+            SELECT p.name, o.condition_name, o.severity, (s.visit_date AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') as visit_date
             FROM clinical_observations o
             JOIN diagnostic_sessions s ON o.session_id = s.id
             JOIN patients p ON s.patient_id = p.id
@@ -1312,7 +1325,7 @@ def get_login_history(user_id=None, limit=100):
     conn = get_db_connection()
     if not conn: return pd.DataFrame()
     try:
-        query = "SELECT l.id, u.username, l.ip_address, l.device, l.status, l.timestamp FROM login_history l JOIN users u ON l.user_id = u.id "
+        query = "SELECT l.id, u.username, l.ip_address, l.device, l.status, (l.timestamp AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') as timestamp FROM login_history l JOIN users u ON l.user_id = u.id "
         params = []
         if user_id:
             query += "WHERE l.user_id = %s "
@@ -1333,7 +1346,7 @@ def get_filtered_audit_logs(search_term=None, action_type=None, start_date=None,
     conn = get_db_connection()
     if not conn: return pd.DataFrame()
     try:
-        query = "SELECT a.id, COALESCE(u.username, 'System') as username, a.action_type, a.details, a.ip_address, a.created_at FROM audit_logs a LEFT JOIN users u ON a.user_id = u.id WHERE 1=1 "
+        query = "SELECT a.id, COALESCE(u.username, 'System') as username, a.action_type, a.details, a.ip_address, (a.created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Kolkata') as created_at FROM audit_logs a LEFT JOIN users u ON a.user_id = u.id WHERE 1=1 "
         params = []
         
         if search_term:
