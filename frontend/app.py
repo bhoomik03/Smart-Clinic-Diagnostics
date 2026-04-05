@@ -697,10 +697,11 @@ def get_diagnosis_scaler():
     scaler.fit(df[feature_cols])
     return scaler, list(feature_cols), le_mappings
 
-def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler_heart, feature_keys_heart, scaler_diag=None, feature_keys_diag=None, le_diag=None, patient_info=None, user_id=None, tabs=None):
+def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler_heart, feature_keys_heart, scaler_diag=None, feature_keys_diag=None, le_diag=None, patient_info=None, user_id=None, tabs=None, target_block=None):
     """
-    Unified diagnostic report generator for both Manual Entry and OCR outputs.
-    Evaluates all detected variables against ML Models and Clinical Rules.
+    Unified diagnostic report generator with Modular (Targeted) execution support.
+    If target_block is provided (e.g., 'diabetes'), only that pipeline runs.
+    If target_block is None, all available pipelines run (standard behavior).
     """
     # Unified diagnostic report generator
     
@@ -743,7 +744,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 st.success("✅ **Screening Complete**: No immediate clinical abnormalities detected in vital markers.")
     
     # --- 1. DIABETES LOGIC ---
-    if 'glucose' in extracted_data:
+    if (not target_block or target_block == 'diabetes') and 'glucose' in extracted_data:
         has_all_dia_features = all(k in extracted_data for k in ['pregnancies', 'diastolic', 'skin_thickness', 'insulin', 'bmi', 'dpf', 'age'])
         if has_all_dia_features:
             raw_features_dia = {
@@ -784,7 +785,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
 
     # --- 2. HEART DISEASE LOGIC --- (Enhanced Hybrid Approach)
     has_heart_features = all(k in extracted_data for k in ['age', 'systolic', 'cholesterol'])
-    if has_heart_features:
+    if (not target_block or target_block == 'heart') and has_heart_features:
         raw_features_heart = {
             'age': extracted_data['age'], 'sex': 1 if patient_info and patient_info.get('gender') == 'Male' else (0 if patient_info and patient_info.get('gender') == 'Female' else 1),
             'cp': extracted_data.get('cp', 0), 'trestbps': extracted_data['systolic'], 'chol': extracted_data['cholesterol'], 
@@ -816,7 +817,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
         risk_data["Heart Risk"] = max(risk_data["Heart Risk"], rule_heart_risk)
     
     # --- 3. HYPERTENSION LOGIC ---
-    if 'systolic' in extracted_data and 'diastolic' in extracted_data:
+    if (not target_block or target_block in ['hypertension', 'heart']) and 'systolic' in extracted_data and 'diastolic' in extracted_data:
         ht_eval = evaluate_hypertension(extracted_data['systolic'], extracted_data['diastolic'])
         if ht_eval["detected"]:
             risk_data["Blood Pressure"] = 1.0 if ht_eval["category"] == "Critical" else 0.8
@@ -825,7 +826,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": disease_name, "severity": ht_eval["category"], "reason": ht_eval["reason"], "advice": advice})
             
     # --- 4. BMI / OBESITY LOGIC ---
-    if 'bmi' in extracted_data:
+    if (not target_block or target_block == 'obesity') and 'bmi' in extracted_data:
         bmi_val = extracted_data['bmi']
         if bmi_val >= 30: 
             risk_data["Obesity/BMI"] = 0.85
@@ -835,7 +836,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": "Overweight", "severity": "Mild", "reason": f"BMI recorded as {bmi_val:.1f}. [OVERWEIGHT] Moderate health risk", "advice": "Maintain a balanced diet and regular physical activity."})
             
     # --- 4.5 CHOLESTEROL LOGIC ---
-    if 'cholesterol' in extracted_data:
+    if (not target_block or target_block in ['cholesterol', 'heart']) and 'cholesterol' in extracted_data:
         chol_eval = evaluate_cholesterol(extracted_data['cholesterol'])
         if chol_eval["detected"]:
             risk_data["Cholesterol"] = 1.0 if chol_eval["category"] == "Critical" else 0.7
@@ -843,7 +844,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": "High Cholesterol", "severity": chol_eval["category"], "reason": chol_eval["reason"], "advice": advice})
             
     # --- 5. KIDNEY DISEASE LOGIC ---
-    if 'creatinine' in extracted_data:
+    if (not target_block or target_block == 'kidney') and 'creatinine' in extracted_data:
         kd_eval = evaluate_kidney_disease(extracted_data['creatinine'])
         if kd_eval["detected"]:
             risk_data["Kidney Function"] = 1.0 if kd_eval["category"] == "Critical" else 0.7
@@ -851,7 +852,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": "Kidney Disease", "severity": kd_eval["category"], "reason": kd_eval["reason"], "advice": advice})
             
     # --- 6. HAEMOGRAM LOGIC ---
-    if any(k in extracted_data for k in ['hb', 'wbc', 'platelets']):
+    if (not target_block or target_block == 'haemogram') and any(k in extracted_data for k in ['hb', 'wbc', 'platelets']):
         haem_eval = evaluate_haemogram(hb=extracted_data.get('hb'), wbc=extracted_data.get('wbc'), platelets=extracted_data.get('platelets'))
         if haem_eval["detected"]:
             risk_data["Blood (Haemogram)"] = 1.0 if haem_eval["category"] == "Critical" else 0.7
@@ -859,7 +860,8 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             detected_conditions.append({"disease": "Blood Disorder (Haemogram)", "severity": haem_eval["category"], "reason": haem_eval["reason"], "advice": advice})
             
     # --- 7. INFECTIOUS DISEASES LOGIC (Typhoid & Dengue) ---
-    inf_dis_risk = 0.0
+    if not target_block or target_block == 'pathology':
+        inf_dis_risk = 0.0
     # Typhoid logic
     if any(k in extracted_data for k in ['typhoid_o', 'typhoid_h']):
         typhoid_res = evaluate_typhoid(o_ag=extracted_data.get('typhoid_o'), h_ag=extracted_data.get('typhoid_h'))
@@ -885,7 +887,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
     risk_data["Infectious Dis."] = inf_dis_risk
 
     # --- 8. LIVER FUNCTION LOGIC ---
-    if any(k in extracted_data for k in ['sgot', 'sgpt']):
+    if (not target_block or target_block == 'pathology') and any(k in extracted_data for k in ['sgot', 'sgpt']):
         liver_res = evaluate_liver_function(sgot=extracted_data.get('sgot'), sgpt=extracted_data.get('sgpt'))
         if liver_res["detected"]:
             risk_data["Liver Function"] = 0.90 if liver_res["category"] == "Critical" else 0.70
@@ -897,7 +899,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 })
             
     # --- 10. SYSTEMIC INFLAMMATION LOGIC ---
-    if 'crp' in extracted_data:
+    if (not target_block or target_block == 'pathology') and 'crp' in extracted_data:
         inflam_eval = evaluate_inflammation(extracted_data['crp'])
         if inflam_eval["detected"]:
             risk_data["Inflammation"] = 1.0 if inflam_eval["category"] == "Critical" else 0.5
@@ -909,26 +911,27 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 })
 
     # --- 11. GENERAL VITALS (HR, TEMP, O2) LOGIC ---
-    if 'heart_rate_bpm' in extracted_data:
-        hr_eval = evaluate_heart_rate(extracted_data['heart_rate_bpm'])
-        if hr_eval["detected"]:
-            if not any(c['disease'] == "Heart Rate Abnormal" for c in detected_conditions):
-                detected_conditions.append({"disease": "Heart Rate Abnormal", "severity": hr_eval["category"], "reason": hr_eval["reason"]})
-            
-    if 'body_temperature_c' in extracted_data:
-        temp_eval = evaluate_body_temp(extracted_data['body_temperature_c'])
-        if temp_eval["detected"]:
-            if not any(c['disease'] == "Body Temperature Abnormal" for c in detected_conditions):
-                detected_conditions.append({"disease": "Body Temperature Abnormal", "severity": temp_eval["category"], "reason": temp_eval["reason"]})
-            
-    if 'oxygen_saturation' in extracted_data:
-        o2_eval = evaluate_oxygen(extracted_data['oxygen_saturation'])
-        if o2_eval["detected"]:
-            if not any(c['disease'] == "Oxygen Saturation Abnormal" for c in detected_conditions):
-                detected_conditions.append({"disease": "Oxygen Saturation Abnormal", "severity": o2_eval["category"], "reason": o2_eval["reason"]})
+    if not target_block or target_block == 'core_vitals':
+        if 'heart_rate_bpm' in extracted_data:
+            hr_eval = evaluate_heart_rate(extracted_data['heart_rate_bpm'])
+            if hr_eval["detected"]:
+                if not any(c['disease'] == "Heart Rate Abnormal" for c in detected_conditions):
+                    detected_conditions.append({"disease": "Heart Rate Abnormal", "severity": hr_eval["category"], "reason": hr_eval["reason"]})
+                
+        if 'body_temperature_c' in extracted_data:
+            temp_eval = evaluate_body_temp(extracted_data['body_temperature_c'])
+            if temp_eval["detected"]:
+                if not any(c['disease'] == "Body Temperature Abnormal" for c in detected_conditions):
+                    detected_conditions.append({"disease": "Body Temperature Abnormal", "severity": temp_eval["category"], "reason": temp_eval["reason"]})
+                
+        if 'oxygen_saturation' in extracted_data:
+            o2_eval = evaluate_oxygen(extracted_data['oxygen_saturation'])
+            if o2_eval["detected"]:
+                if not any(c['disease'] == "Oxygen Saturation Abnormal" for c in detected_conditions):
+                    detected_conditions.append({"disease": "Oxygen Saturation Abnormal", "severity": o2_eval["category"], "reason": o2_eval["reason"]})
 
     # --- 11. GENERAL DISEASE DIAGNOSIS (ML) ---
-    if all(k in extracted_data for k in ['symptom_1', 'symptom_2', 'symptom_3']) and scaler_diag:
+    if (not target_block or target_block == 'general') and all(k in extracted_data for k in ['symptom_1', 'symptom_2', 'symptom_3']) and scaler_diag:
         try:
             # Prepare raw features matching the training set
             raw_diag = {
@@ -1780,6 +1783,10 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             if 'demo_mode' in st.session_state:
                 del st.session_state['demo_mode']
             st.session_state.auto_submit = False
+            
+            # Initialize active_block if not present
+            if 'active_block' not in st.session_state:
+                st.session_state.active_block = None
 
         render_luxury_header("Manual Clinical Data Entry", icon="✍️", badge_text="Precision Input", mode="hero")
         st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
@@ -1798,7 +1805,9 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
         with col_btn3:
             st.button("🔄 Reset", on_click=reset_form_data, type="secondary", width="stretch")
             
-        with st.container(border=False):
+        # --- CLINICAL ENTRY FORM ---
+        # Wrapping in a form prevents reruns on every input change for a smoother experience
+        with st.form("clinical_entry_form", clear_on_submit=False):
             # Use global profile gender to control UI logic
             p_sex = st.session_state.get('patient_profile', {}).get('gender', 'Female')
             
@@ -1818,7 +1827,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                     body_temp = st.number_input("Body Temp (°C)", min_value=0.0, max_value=45.0, value=0.0, key="mi_temp")
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                submit_core_vitals = st.button("🩸 Analyze Blood Sugar Only", type="secondary", width="stretch")
+                submit_core_vitals = st.form_submit_button("🩸 Step 1: Evaluate Blood Sugar & Vitals Only", width="stretch")
                 
             with st.expander("🩸 Advanced Diabetic Specifics (Optional)", expanded=True):
                 col1, col2, col3, col4 = st.columns(4)
@@ -1832,7 +1841,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 with col2: skin_thickness = st.number_input("Skin Thickness (mm)", min_value=0, max_value=100, value=0, help="Triceps Skinfold Check (WHO Normal: 10-22mm)", key="mi_skin")
                 with col3: insulin = st.number_input("Insulin (mu U/ml)", min_value=0.0, max_value=900.0, value=0.0, help="Serum Insulin (WHO Normal Fasting: 2-25 mu U/ml)", key="mi_ins")
                 with col4: dpf = st.number_input("Diabetes Pedigree Function", min_value=0.0, max_value=3.0, value=0.0, format="%.3f", help="Genetic score (0-3) based on family history", key="mi_dpf")
-                submit_dia = st.button("🩺 Analyze Diabetes Only", width="stretch")
+                submit_dia = st.form_submit_button("🩺 Step 1: Analyze Diabetes Only", width="stretch")
                 
             with st.expander("❤️ Advanced Heart Diagnostics (Optional)", expanded=True):
                 col1, col2, col3 = st.columns(3)
@@ -1879,7 +1888,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                                     "1: Fixed Defect (Stable)" if x==1 else 
                                     "2: Reversible Defect (Unstable)", 
                         help="Blood flow condition as shown on cardiac scan", key="mi_thal")
-                submit_heart = st.button("🩺 Analyze Heart Disease Only", width="stretch")
+                submit_heart = st.form_submit_button("🩺 Step 1: Analyze Heart Disease Only", width="stretch")
 
             with st.expander("🧪 Comprehensive Pathology Panels (Optional)", expanded=False):
                 colA, colB, colC = st.columns(3)
@@ -1909,8 +1918,8 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 with colS2: s2 = st.selectbox("Symptom 2", s_list, index=0, key="mi_s2")
                 with colS3: s3 = st.selectbox("Symptom 3", s_list, index=0, key="mi_s3")
                 
-                submit_path = st.button("🧪 Analyze Pathology & Symptoms Only", width="stretch")
-                submit_general = st.button("🩺 Analyze General Disease Only", width="stretch")
+                submit_path = st.form_submit_button("🧪 Step 1: Analyze Pathology & Symptoms Only", width="stretch")
+                submit_general = st.form_submit_button("🩺 Step 1: Analyze General Disease Only", width="stretch")
 
             # Build dict for current state evaluation
             manual_data = {}
@@ -1957,37 +1966,80 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             if s2 != "None": manual_data['symptom_2'] = s2
             if s3 != "None": manual_data['symptom_3'] = s3
             
+            # --- SUBMISSION HANDLER ---
+            # Map buttons to block IDs
+            if submit_core_vitals: st.session_state.active_block = 'core_vitals'
+            if submit_dia: st.session_state.active_block = 'diabetes'
+            if submit_heart: st.session_state.active_block = 'heart'
+            if submit_path: st.session_state.active_block = 'pathology'
+            if submit_general: st.session_state.active_block = 'general'
+            
+            # Reset indicators if reset button was clicked (handled elsewhere)
+            
             # Evaluate dynamically
             dynamic_results = evaluate_manual_clinical_risk(manual_data)
             
+            # Filter results based on active block
+            filtered_results = []
+            if st.session_state.active_block:
+                # Map parameters to blocks for better UX as requested
+                block_map = {
+                    'diabetes': ['Glucose', 'Insulin', 'BMI', 'Pregnancies', 'Diabetes Pedigree'],
+                    'heart': ['Systolic BP', 'Diastolic BP', 'Cholesterol', 'Heart Rate', 'Max Heart Rate', 'ST Depression', 'Resting ECG'],
+                    'core_vitals': ['Systolic BP', 'Diastolic BP', 'Glucose', 'BMI', 'Heart Rate', 'Oxygen Saturation', 'Body Temp'],
+                    'pathology': ['Creatinine', 'Hemoglobin', 'WBC', 'Platelets', 'AST', 'ALT', 'CRP', 'Typhoid', 'Dengue'],
+                    'general': ['Fever', 'Cough', 'Fatigue', 'Shortness of breath']
+                }
+                allowed = block_map.get(st.session_state.active_block, [])
+                filtered_results = [r for r in dynamic_results if any(a.lower() in r['param'].lower() for a in allowed)]
+
             render_luxury_header("Live Clinical Risk Indicators", icon="🔴")
-            if dynamic_results:
+            if filtered_results:
                 indicators_html = "<div style='display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;'>"
-                for r in dynamic_results:
+                for r in filtered_results:
                     color = "#3B82F6" if r['status'] == 'LOW' else "#10B981" if r['status'] == 'NORMAL' else "#EF4444"
                     indicators_html += f"<span style='background-color:{color}10; border: 1px solid {color}40; color:{color}; padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 0.85rem;'>{r['param']}: {r['status']}</span>"
                 indicators_html += "</div>"
                 st.markdown(indicators_html, unsafe_allow_html=True)
             else:
-                st.info("Enter clinical values above to see live parameter indicators.")
+                st.info("Enter values and click a **Step 1: Analyze** button inside a block to see live markers.")
 
             # Add professional spacing as requested
             st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
 
-            submit_btn = st.button("📊 Generate Comprehensive Auto-Diagnostic Report (All 11 Pipelines)", type="primary", use_container_width=True)
+            # --- STEP 2: FULL REPORT (Only if a block is active) ---
+            if st.session_state.active_block:
+                st.success(f"✅ **{st.session_state.active_block.upper()}** appraisal complete. You can now generate the full AI report.")
+                submit_btn = st.form_submit_button("📊 Step 2: Generate Comprehensive Auto-Diagnostic Report (Targeted Pipeline)", type="primary", width="stretch")
+            else:
+                submit_btn = False
 
+        # --- TRIGGER LOGIC ---
+        # Any of the manual "Analyze" buttons or the main comprehensive button
         any_submit = submit_btn or submit_dia or submit_heart or submit_path or submit_core_vitals or submit_general
-
+        
+        # Handle Demo Mode auto-submission
         if st.session_state.get('auto_submit'):
             any_submit = True
-            st.session_state.auto_submit = False  # Reset flag so it fires only once
-
+            st.session_state.auto_submit = False  # Reset flag immediately
+            
+        # IMPORTANT: run_diagnostic_pipeline should ONLY run if any_submit is True
         if any_submit:
             tab_obs, tab_risk, tab_det = st.tabs(["🌡️ Vital Indicators", "📊 Risk Analytics", "🩺 Clinical Insights"])
             
             with st.spinner("Processing ML Diagnostics..."):
                 manual_data['age'] = st.session_state.patient_profile['age']
-                run_diagnostic_pipeline(manual_data, scaler_dia, feature_keys_dia, scaler_heart, feature_keys_heart, scaler_diag=scaler_diag, feature_keys_diag=feature_keys_diag, le_diag=le_diag, patient_info=st.session_state.patient_profile, user_id=user_id, tabs=(tab_obs, tab_risk, tab_det))
+                run_diagnostic_pipeline(
+                    manual_data, 
+                    scaler_dia, feature_keys_dia, 
+                    scaler_heart, feature_keys_heart, 
+                    scaler_diag=scaler_diag, feature_keys_diag=feature_keys_diag, 
+                    le_diag=le_diag, 
+                    patient_info=st.session_state.patient_profile, 
+                    user_id=user_id, 
+                    tabs=(tab_obs, tab_risk, tab_det),
+                    target_block=st.session_state.active_block
+                )
             
             # Smooth scrolling to the results container
             import streamlit.components.v1 as components
