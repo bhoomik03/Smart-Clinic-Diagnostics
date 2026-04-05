@@ -753,19 +753,27 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             # Extract vital indicators from the provided data
             vital_indicators = evaluate_manual_clinical_risk(extracted_data, target_block=target_block)
             
-            obs_to_show = [r for r in vital_indicators if r['status'] != 'NORMAL' and r.get('msg')]
+            # Logic: If a specific block is targeted, show ALL indicators from that block for feedback.
+            # If in global OCR mode (target_block is None), only show abnormal metrics to avoid clutter.
+            if target_block:
+                obs_to_show = vital_indicators
+                status_header = f"📋 Active Diagnostic Status - {target_block.replace('_', ' ').upper()}"
+            else:
+                obs_to_show = [r for r in vital_indicators if r['status'] != 'NORMAL' and r.get('msg')]
+                status_header = "⚠️ Immediate Clinical Alert Observations"
             
             if obs_to_show:
-                st.markdown("#### ⚠️ Immediate Medical Observations")
-                cols = st.columns(len(obs_to_show) if len(obs_to_show) < 3 else 3)
+                st.markdown(f"#### {status_header}")
+                cols = st.columns(len(obs_to_show) if len(obs_to_show) < 4 else 4)
                 for i, r in enumerate(obs_to_show):
-                    with cols[i % 3]:
-                        color = "#3B82F6" if r['status'] == 'LOW' else "#EF4444"
+                    with cols[i % 4]:
+                        # Color: LOW=Blue, HIGH=Red, NORMAL=Green
+                        color = "#3B82F6" if r['status'] == 'LOW' else ("#EF4444" if r['status'] == 'HIGH' else "#10B981")
                         st.markdown(f"""
-                        <div class="stat-card-pro">
+                        <div class="stat-card-pro" style="border-top: 4px solid {color};">
                             <div class="stat-label-pro">{r['param']}</div>
                             <div class="stat-value-pro" style="color:{color};">{r['status']}</div>
-                            <div class="stat-msg-pro">{r['msg']}</div>
+                            <div class="stat-msg-pro" style="font-size:0.75rem;">{r.get('msg', 'Measurement Normal')}</div>
                         </div>
                         """, unsafe_allow_html=True)
             else:
