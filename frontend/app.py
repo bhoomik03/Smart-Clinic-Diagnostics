@@ -2225,7 +2225,18 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 'session_id': 'first' # Required for deep-drill fetching
             }).reset_index().sort_values('Date', ascending=False)
             
-            grouped['DateStr'] = grouped['Date'].dt.strftime('%b %d, %Y  %H:%M (IST)')
+            # Ensure aware timestamp before formatting
+            def format_ist(dt_obj):
+                try:
+                    if dt_obj.tzinfo is None:
+                        # If naive (it shouldn't be with my DB fix, but for safety), treat as UTC then convert
+                        return dt_obj.replace(tzinfo=datetime.timezone.utc).astimezone(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).strftime('%b %d, %Y  %H:%M (IST)')
+                    # If already aware, just ensure IST shift
+                    return dt_obj.astimezone(datetime.timezone(datetime.timedelta(hours=5, minutes=30))).strftime('%b %d, %Y  %H:%M (IST)')
+                except:
+                    return str(dt_obj)
+            
+            grouped['DateStr'] = grouped['Date'].apply(format_ist)
             
             # ── PRE-CALCULATE ANALYTICS DATA ────────────────────────────────────
             total_sessions = len(grouped)

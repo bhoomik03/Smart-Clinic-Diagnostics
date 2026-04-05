@@ -489,7 +489,7 @@ def get_patient_history(user_id=None):
         o.condition_name as rule_disease, 
         o.severity, 
         o.observation_text,
-        s.visit_date AT TIME ZONE 'Asia/Kolkata' as timestamp, 
+        s.visit_date as timestamp, 
         s.id as session_id
     FROM patients p
     JOIN diagnostic_sessions s ON p.id = s.patient_id
