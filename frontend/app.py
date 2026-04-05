@@ -410,11 +410,26 @@ def render_login_ui():
     st.stop()
 
 
-def evaluate_manual_clinical_risk(data):
+def evaluate_manual_clinical_risk(data, target_block=None):
     results = []
     
+    # Define block mapping for strict filtering as requested by user
+    # This prevents parameters from one block showing up in another's report
+    block_map = {
+        'diabetes': ['Pregnancies', 'Glucose', 'Systolic BP', 'Diastolic BP', 'Skin Thickness', 'Insulin', 'BMI', 'Diabetes Pedigree'],
+        'heart': ['Systolic BP', 'Diastolic BP', 'Total Cholesterol', 'Heart Rate', 'Max Heart Rate', 'Chest Pain Severity', 'Resting ECG', 'ST Depression', 'ST Slope', 'Thalassemia', 'Exercise Induced Angina', 'Major Vessel Blockage'],
+        'core_vitals': ['Systolic BP', 'Diastolic BP', 'Glucose', 'BMI', 'Heart Rate', 'Oxygen Saturation', 'Body Temperature', 'Total Cholesterol'],
+        'pathology': ['Creatinine', 'Hemoglobin', 'WBC', 'Platelets', 'AST', 'ALT', 'CRP', 'Typhoid', 'Dengue'],
+        'general': ['Systolic BP', 'Diastolic BP', 'Heart Rate', 'Body Temperature', 'Fever', 'Cough', 'Fatigue']
+    }
+    
+    def is_allowed(param_name):
+        if not target_block: return True # Show all if no target (standard/OCR mode)
+        allowed_list = block_map.get(target_block, [])
+        return any(a.lower() in param_name.lower() for a in allowed_list)
+
     sys = data.get('systolic')
-    if sys is not None and sys > 0:
+    if sys is not None and sys > 0 and is_allowed('Systolic BP'):
         if sys < 90: results.append({'param': 'Systolic BP', 'val': sys, 'status': 'LOW', 'msg': '[HYPOTENSION] Low blood pressure detected'})
         elif 90 <= sys < 120: results.append({'param': 'Systolic BP', 'val': sys, 'status': 'NORMAL', 'msg': '[NORMAL] Optimal blood pressure'})
         elif 120 <= sys < 130: results.append({'param': 'Systolic BP', 'val': sys, 'status': 'HIGH', 'msg': '[ELEVATED_BP] Elevated blood pressure detected'})
@@ -504,71 +519,71 @@ def evaluate_manual_clinical_risk(data):
         elif thal >= 1: results.append({'param': 'Thalassemia', 'val': thal, 'status': 'HIGH', 'msg': '[THALASSEMIA_DEFECT] Blood disorder detected'})
 
     # DIABETES PARAMETERS - GENDER SENSITIVE
-    sex = data.get('sex', 'Female') # Default to Female for safety in PIMA context if missing
+    sex = data.get('sex', 'Female') 
     pregnancies = data.get('pregnancies')
     
-    if sex == "Female" and pregnancies is not None and pregnancies > 0:
+    if sex == "Female" and pregnancies is not None and pregnancies > 0 and is_allowed('Pregnancies'):
         if 1 <= pregnancies <= 3: results.append({'param': 'Pregnancies', 'val': pregnancies, 'status': 'NORMAL', 'msg': '[NORMAL] Normal pregnancy count'})
         elif pregnancies >= 4: results.append({'param': 'Pregnancies', 'val': pregnancies, 'status': 'HIGH', 'msg': '[HIGH_RISK] Multiple pregnancy risk factor'})
 
     skin_thickness = data.get('skin_thickness')
-    if skin_thickness is not None and skin_thickness > 0:
+    if skin_thickness is not None and skin_thickness > 0 and is_allowed('Skin Thickness'):
         if skin_thickness < 10: results.append({'param': 'Skin Thickness', 'val': skin_thickness, 'status': 'LOW', 'msg': '[LOW_SKIN_FAT] Low subcutaneous fat'})
         elif 10 <= skin_thickness <= 30: results.append({'param': 'Skin Thickness', 'val': skin_thickness, 'status': 'NORMAL', 'msg': '[NORMAL] Skin thickness normal'})
         elif skin_thickness > 30: results.append({'param': 'Skin Thickness', 'val': skin_thickness, 'status': 'HIGH', 'msg': '[HIGH_RISK] High fat deposition'})
 
     insulin = data.get('insulin')
-    if insulin is not None and insulin > 0:
+    if insulin is not None and insulin > 0 and is_allowed('Insulin'):
         if insulin < 16: results.append({'param': 'Insulin', 'val': insulin, 'status': 'LOW', 'msg': '[LOW_INSULIN] Low insulin level'})
         elif 16 <= insulin <= 166: results.append({'param': 'Insulin', 'val': insulin, 'status': 'NORMAL', 'msg': '[NORMAL] Insulin level normal'})
         elif insulin > 166: results.append({'param': 'Insulin', 'val': insulin, 'status': 'HIGH', 'msg': '[HIGH_INSULIN] Possible insulin resistance'})
 
     dpf = data.get('dpf')
-    if dpf is not None and dpf > 0:
+    if dpf is not None and dpf > 0 and is_allowed('Diabetes Pedigree'):
         if dpf < 0.2: results.append({'param': 'Diabetes Pedigree', 'val': dpf, 'status': 'LOW', 'msg': '[LOW_GENETIC_RISK] Low genetic diabetes risk'})
         elif 0.2 <= dpf <= 0.8: results.append({'param': 'Diabetes Pedigree', 'val': dpf, 'status': 'NORMAL', 'msg': '[NORMAL] Moderate genetic risk'})
         elif dpf > 0.8: results.append({'param': 'Diabetes Pedigree', 'val': dpf, 'status': 'HIGH', 'msg': '[HIGH_GENETIC_RISK] Strong genetic risk'})
 
     # KIDNEY & BLOOD
     creatinine = data.get('creatinine')
-    if creatinine is not None and creatinine > 0:
+    if creatinine is not None and creatinine > 0 and is_allowed('Creatinine'):
         if creatinine < 0.6: results.append({'param': 'Creatinine', 'val': creatinine, 'status': 'LOW', 'msg': '[LOW_CREATININE] Low muscle mass indication'})
         elif 0.6 <= creatinine <= 1.3: results.append({'param': 'Creatinine', 'val': creatinine, 'status': 'NORMAL', 'msg': '[NORMAL] Kidney function normal'})
         elif creatinine > 1.3: results.append({'param': 'Creatinine', 'val': creatinine, 'status': 'HIGH', 'msg': '[RENAL_IMPAIRMENT] Kidney dysfunction risk'})
 
     hb = data.get('hb')
-    if hb is not None and hb > 0:
+    if hb is not None and hb > 0 and is_allowed('Hemoglobin'):
         if hb < 12: results.append({'param': 'Hemoglobin', 'val': hb, 'status': 'LOW', 'msg': '[ANEMIA] Low hemoglobin detected'})
         elif 12 <= hb <= 17: results.append({'param': 'Hemoglobin', 'val': hb, 'status': 'NORMAL', 'msg': '[NORMAL] Hemoglobin normal'})
         elif hb > 17: results.append({'param': 'Hemoglobin', 'val': hb, 'status': 'HIGH', 'msg': '[POLYCYTHEMIA] Elevated hemoglobin'})
 
     wbc = data.get('wbc')
-    if wbc is not None and wbc > 0:
+    if wbc is not None and wbc > 0 and is_allowed('WBC'):
         if wbc < 4000: results.append({'param': 'WBC', 'val': wbc, 'status': 'LOW', 'msg': '[LEUKOPENIA] Low immunity level'})
         elif 4000 <= wbc <= 11000: results.append({'param': 'WBC', 'val': wbc, 'status': 'NORMAL', 'msg': '[NORMAL] WBC count normal'})
         elif wbc > 11000: results.append({'param': 'WBC', 'val': wbc, 'status': 'HIGH', 'msg': '[INFECTION_RISK] Possible infection'})
 
     platelets = data.get('platelets')
-    if platelets is not None and platelets > 0:
+    if platelets is not None and platelets > 0 and is_allowed('Platelets'):
         if platelets < 150000: results.append({'param': 'Platelets', 'val': platelets, 'status': 'LOW', 'msg': '[THROMBOCYTOPENIA] Low platelet count'})
         elif 150000 <= platelets <= 450000: results.append({'param': 'Platelets', 'val': platelets, 'status': 'NORMAL', 'msg': '[NORMAL] Platelet count normal'})
         elif platelets > 450000: results.append({'param': 'Platelets', 'val': platelets, 'status': 'HIGH', 'msg': '[THROMBOCYTOSIS] Elevated platelet count'})
 
     # LIVER PARAMETERS
     sgot = data.get('sgot')
-    if sgot is not None and sgot > 0:
+    if sgot is not None and sgot > 0 and is_allowed('AST'):
         if sgot < 10: results.append({'param': 'AST', 'val': sgot, 'status': 'LOW', 'msg': '[LOW_AST] Below normal liver enzyme'})
         elif 10 <= sgot <= 40: results.append({'param': 'AST', 'val': sgot, 'status': 'NORMAL', 'msg': '[NORMAL] Liver function normal'})
         elif sgot > 40: results.append({'param': 'AST', 'val': sgot, 'status': 'HIGH', 'msg': '[LIVER_DAMAGE] Liver injury risk'})
 
     sgpt = data.get('sgpt')
-    if sgpt is not None and sgpt > 0:
+    if sgpt is not None and sgpt > 0 and is_allowed('ALT'):
         if sgpt < 7: results.append({'param': 'ALT', 'val': sgpt, 'status': 'LOW', 'msg': '[LOW_ALT] Below normal enzyme level'})
         elif 7 <= sgpt <= 56: results.append({'param': 'ALT', 'val': sgpt, 'status': 'NORMAL', 'msg': '[NORMAL] Liver enzyme normal'})
         elif sgpt > 56: results.append({'param': 'ALT', 'val': sgpt, 'status': 'HIGH', 'msg': '[LIVER_DAMAGE] Liver damage risk'})
 
     crp = data.get('crp')
-    if crp is not None and crp > 0:
+    if crp is not None and crp > 0 and is_allowed('CRP'):
         if crp < 1: results.append({'param': 'CRP', 'val': crp, 'status': 'LOW', 'msg': '[NO_INFLAMMATION] No inflammation detected'})
         elif 1 <= crp <= 3: results.append({'param': 'CRP', 'val': crp, 'status': 'NORMAL', 'msg': '[NORMAL] Mild inflammation'})
         elif crp > 3: results.append({'param': 'CRP', 'val': crp, 'status': 'HIGH', 'msg': '[INFLAMMATION] Significant inflammation'})
@@ -727,7 +742,7 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             render_luxury_header("Clinical Analysis Summary", icon="🧪")
             
             # Extract vital indicators from the provided data
-            vital_indicators = evaluate_manual_clinical_risk(extracted_data)
+            vital_indicators = evaluate_manual_clinical_risk(extracted_data, target_block=target_block)
             
             obs_to_show = [r for r in vital_indicators if r['status'] != 'NORMAL' and r.get('msg')]
             
@@ -1096,6 +1111,14 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
     
     if tabs:
         with tab_risk:
+            # Add ML Data Transparency Note
+            st.markdown("""
+            <div style="background: rgba(59, 130, 246, 0.05); border-left: 4px solid #3B82F6; padding: 12px; border-radius: 8px; margin-bottom: 20px;">
+                <p style="margin: 0; font-size: 0.85rem; color: #1E293B;">
+                    ℹ️ <b>ML Transparency Note</b>: For unentered fields, AI utilizes standard clinical averages to provide a preliminary risk estimate. Providing a full profile will increase accuracy.
+                </p>
+            </div>
+            """, unsafe_allow_html=True)
             st.plotly_chart(fig, width="stretch", config={'displayModeBar': False})
     else:
         st.plotly_chart(fig, width="stretch", config={'displayModeBar': False})
@@ -1981,7 +2004,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             # Reset indicators if reset button was clicked (handled elsewhere)
             
             # Evaluate dynamically
-            dynamic_results = evaluate_manual_clinical_risk(manual_data)
+            dynamic_results = evaluate_manual_clinical_risk(manual_data, target_block=st.session_state.active_block)
             
             # Filter results based on active block
             filtered_results = []
