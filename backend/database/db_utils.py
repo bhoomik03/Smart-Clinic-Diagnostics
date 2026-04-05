@@ -75,7 +75,13 @@ def get_db_connection():
         cursor.close()
         return conn
     except Exception as e:
-        print(f"CRITICAL: Error connecting to the database '{DB_NAME}' at {DB_HOST}: {e}")
+        error_msg = f"CRITICAL Database Error: {e}"
+        print(error_msg)
+        try:
+            import streamlit as st
+            st.error(error_msg)
+        except:
+            pass
         return None
 
 def initialize_tables():
