@@ -2622,12 +2622,20 @@ def render_admin_dashboard():
             reg_df, sess_df = _util_result
         else:
             reg_df, sess_df = pd.DataFrame(), pd.DataFrame()
+            
+        # Ensure robust date formatting for Plotly
+        if not reg_df.empty:
+            reg_df['scan_date'] = pd.to_datetime(reg_df['scan_date']).dt.date
+        if not sess_df.empty:
+            sess_df['scan_date'] = pd.to_datetime(sess_df['scan_date']).dt.date
+
         chart_col1, chart_col2 = st.columns(2, gap="large")
         
         with chart_col1:
             with st.container(border=True):
                 if isinstance(reg_df, pd.DataFrame) and not reg_df.empty:
-                    fig_reg = px.area(reg_df, x='scan_date', y='count', 
+                    # UPDATED: Using px.bar for single-point visibility
+                    fig_reg = px.bar(reg_df, x='scan_date', y='count', 
                                       title="User Registrations",
                                       color_discrete_sequence=['#10B981'])
                     fig_reg.update_layout(
@@ -2645,7 +2653,8 @@ def render_admin_dashboard():
         with chart_col2:
             with st.container(border=True):
                 if isinstance(sess_df, pd.DataFrame) and not sess_df.empty:
-                    fig_sess = px.area(sess_df, x='scan_date', y='count', 
+                    # UPDATED: Using px.bar for single-point visibility
+                    fig_sess = px.bar(sess_df, x='scan_date', y='count', 
                                        title="Diagnostic Session Activity",
                                        color_discrete_sequence=['#00D4FF'])
                     fig_sess.update_layout(
