@@ -1872,17 +1872,14 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             p_sex = st.session_state.get('patient_profile', {}).get('gender', 'Female')
             
             with st.expander("❤️ Core Vitals & Blood Sugar", expanded=True):
-                col1, col2, col3, col4 = st.columns(4)
+                col1, col2, col3 = st.columns(3)
                 with col1:
                     systolic = st.number_input("Systolic BP (mmHg)", min_value=0, max_value=250, value=0, key="mi_sys")
                     diastolic = st.number_input("Diastolic BP (mmHg)", min_value=0, max_value=150, value=0, key="mi_dia")
                 with col2:
-                    glucose = st.number_input("Glucose (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, key="mi_glu")
                     cholesterol = st.number_input("Total Cholesterol (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, key="mi_chol")
-                with col3:
-                    bmi = st.number_input("BMI", min_value=0.0, max_value=60.0, value=0.0, key="mi_bmi")
                     oxygen = st.number_input("Oxygen Saturation (%)", min_value=0, max_value=100, value=0, key="mi_oxy")
-                with col4:
+                with col3:
                     heart_rate = st.number_input("Heart Rate (bpm)", min_value=0, max_value=200, value=0, key="mi_hr")
                     body_temp = st.number_input("Body Temp (°C)", min_value=0.0, max_value=45.0, value=0.0, key="mi_temp")
 
@@ -1890,17 +1887,21 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 submit_core_vitals = st.form_submit_button("🩸 Evaluate Blood Sugar & Vitals Only", width="stretch")
                 
             with st.expander("🩸 Advanced Diabetic Specifics", expanded=True):
-                col1, col2, col3, col4 = st.columns(4)
-                with col1: 
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    glucose = st.number_input("Blood Glucose (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, help="Fasting/PP Glucose level", key="mi_glu")
+                    bmi = st.number_input("Current BMI", min_value=0.0, max_value=60.0, value=0.0, help="Body Mass Index", key="mi_bmi")
+                with col2:
                     if p_sex == "Female":
-                        pregnancies = st.number_input("Pregnancies", min_value=0, max_value=20, value=0, help="Number of times pregnant (WHO gestational risk factor)", key="mi_preg")
+                        pregnancies = st.number_input("Pregnancies", min_value=0, max_value=20, value=0, help="Number of times pregnant", key="mi_preg")
                     else:
                         st.markdown("**Pregnancies**")
                         st.caption("N/A for Men")
                         pregnancies = 0
-                with col2: skin_thickness = st.number_input("Skin Thickness (mm)", min_value=0, max_value=100, value=0, help="Triceps Skinfold Check (WHO Normal: 10-22mm)", key="mi_skin")
-                with col3: insulin = st.number_input("Insulin (mu U/ml)", min_value=0.0, max_value=900.0, value=0.0, help="Serum Insulin (WHO Normal Fasting: 2-25 mu U/ml)", key="mi_ins")
-                with col4: dpf = st.number_input("Diabetes Pedigree Function", min_value=0.0, max_value=3.0, value=0.0, format="%.3f", help="Genetic score (0-3) based on family history", key="mi_dpf")
+                    skin_thickness = st.number_input("Skin Thickness (mm)", min_value=0, max_value=100, value=0, help="Triceps Skinfold Check", key="mi_skin")
+                with col3: 
+                    insulin = st.number_input("Insulin (mu U/ml)", min_value=0.0, max_value=900.0, value=0.0, help="Serum Insulin", key="mi_ins")
+                    dpf = st.number_input("Diabetes Pedigree Function", min_value=0.0, max_value=3.0, value=0.0, format="%.3f", help="Genetic score (0-3)", key="mi_dpf")
                 submit_dia = st.form_submit_button("🩺 Analyze Diabetes Only", width="stretch")
                 
             with st.expander("❤️ Advanced Heart Diagnostics", expanded=True):
