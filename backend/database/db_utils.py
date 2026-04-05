@@ -222,25 +222,6 @@ def initialize_tables():
             print(f"Warning: ALTER TABLE migration in initialize_tables: {e}")
             conn.rollback()
 
-        # --- ONE-TIME DATA RESET & SCHEMA STABILIZATION ---
-        try:
-            # 1. Truncate test diagnostic data (Clean Slate)
-            cursor.execute("TRUNCATE TABLE diagnostic_sessions CASCADE;")
-            cursor.execute("TRUNCATE TABLE audit_logs;")
-            cursor.execute("TRUNCATE TABLE login_history;")
-            
-            # 2. Re-stabilize Columns to TIMESTAMP WITHOUT TIME ZONE (Naive IST)
-            cursor.execute("ALTER TABLE users ALTER COLUMN created_at TYPE TIMESTAMP WITHOUT TIME ZONE USING created_at AT TIME ZONE 'UTC';")
-            cursor.execute("ALTER TABLE patients ALTER COLUMN created_at TYPE TIMESTAMP WITHOUT TIME ZONE USING created_at AT TIME ZONE 'UTC';")
-            cursor.execute("ALTER TABLE diagnostic_sessions ALTER COLUMN visit_date TYPE TIMESTAMP WITHOUT TIME ZONE USING visit_date AT TIME ZONE 'UTC';")
-            
-            # 3. Final Database Reset: Default Timezone to UTC (Standard)
-            cursor.execute(f"ALTER DATABASE {DB_NAME} SET timezone TO 'UTC';")
-            cursor.execute(f"ALTER ROLE {DB_USER} SET timezone TO 'UTC';")
-            
-            print("NEON RESET: Diagnostic history cleaned. Timezones stabilized to Wall-Clock IST.")
-        except Exception as e:
-            print(f"Neon Reset Warning (Non-Critical): {e}")
 
         conn.commit()
     except Exception as e:

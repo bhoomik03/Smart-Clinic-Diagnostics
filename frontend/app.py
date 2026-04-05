@@ -2407,13 +2407,6 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 st.markdown('<div style="height:20px; border-top:1px solid #F1F5F9; margin: 20px 0;"></div>', unsafe_allow_html=True)
 
             with h_tab3:
-                # ── REFRESH & SYNC ACTION ──────────────────────────────────────
-                col_ref, col_space = st.columns([1, 3])
-                with col_ref:
-                    if st.button("🔄 Sync System & Refresh", use_container_width=True, type="secondary"):
-                        st.cache_data.clear()
-                        st.rerun()
-                st.markdown('<div style="height:10px;"></div>', unsafe_allow_html=True)
 
                 # ── DIAGNOSTIC HISTORY BLOCKS ─────────────────────────────────────
                 if not grouped.empty:
