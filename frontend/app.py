@@ -436,85 +436,85 @@ def evaluate_manual_clinical_risk(data, target_block=None):
         elif sys >= 130: results.append({'param': 'Systolic BP', 'val': sys, 'status': 'HIGH', 'msg': '[HYPERTENSION] High blood pressure detected'})
 
     dia = data.get('diastolic')
-    if dia is not None and dia > 0:
+    if dia is not None and dia > 0 and is_allowed('Diastolic BP'):
         if dia < 60: results.append({'param': 'Diastolic BP', 'val': dia, 'status': 'LOW', 'msg': '[HYPOTENSION] Low blood pressure detected'})
         elif 60 <= dia < 80: results.append({'param': 'Diastolic BP', 'val': dia, 'status': 'NORMAL', 'msg': '[NORMAL] Blood pressure within normal range'})
         elif dia >= 80: results.append({'param': 'Diastolic BP', 'val': dia, 'status': 'HIGH', 'msg': '[HYPERTENSION] High blood pressure detected'})
     
     glu = data.get('glucose')
-    if glu is not None and glu > 0:
+    if glu is not None and glu > 0 and is_allowed('Glucose'):
         if glu < 70: results.append({'param': 'Glucose', 'val': glu, 'status': 'LOW', 'msg': '[HYPOGLYCEMIA] Low blood sugar detected'})
         elif 70 <= glu <= 99: results.append({'param': 'Glucose', 'val': glu, 'status': 'NORMAL', 'msg': '[NORMAL] Blood glucose normal'})
         elif glu >= 100: results.append({'param': 'Glucose', 'val': glu, 'status': 'HIGH', 'msg': '[DIABETES_RISK] High/Abnormal blood sugar detected'})
         
     bmi = data.get('bmi')
-    if bmi is not None and bmi > 0:
+    if bmi is not None and bmi > 0 and is_allowed('BMI'):
         if bmi < 18.5: results.append({'param': 'BMI', 'val': bmi, 'status': 'LOW', 'msg': '[UNDERWEIGHT] BMI indicates underweight condition'})
         elif 18.5 <= bmi <= 24.9: results.append({'param': 'BMI', 'val': bmi, 'status': 'NORMAL', 'msg': '[NORMAL] Healthy BMI range'})
         elif bmi >= 25: results.append({'param': 'BMI', 'val': bmi, 'status': 'HIGH', 'msg': '[OVERWEIGHT_RISK] Increased obesity risk'})
 
     hr = data.get('heart_rate_bpm')
-    if hr is not None and hr > 0:
+    if hr is not None and hr > 0 and is_allowed('Heart Rate'):
         if hr < 50: results.append({'param': 'Heart Rate', 'val': hr, 'status': 'LOW', 'msg': '[BRADYCARDIA] Low heart rate detected'})
         elif 50 <= hr <= 100: results.append({'param': 'Heart Rate', 'val': hr, 'status': 'NORMAL', 'msg': '[NORMAL] Heart rate normal'})
         elif hr > 100: results.append({'param': 'Heart Rate', 'val': hr, 'status': 'HIGH', 'msg': '[TACHYCARDIA] Elevated heart rate detected'})
         
     chol = data.get('cholesterol')
-    if chol is not None and chol > 0:
+    if chol is not None and chol > 0 and is_allowed('Total Cholesterol'):
         if chol < 120: results.append({'param': 'Total Cholesterol', 'val': chol, 'status': 'LOW', 'msg': '[LOW_CHOLESTEROL] Cholesterol below recommended level'})
         elif 120 <= chol < 200: results.append({'param': 'Total Cholesterol', 'val': chol, 'status': 'NORMAL', 'msg': '[NORMAL] Cholesterol within healthy range'})
         elif chol >= 200: results.append({'param': 'Total Cholesterol', 'val': chol, 'status': 'HIGH', 'msg': '[HYPERCHOLESTEROLEMIA] Cardiovascular risk detected'})
         
     o2 = data.get('oxygen_saturation')
-    if o2 is not None and o2 > 0:
+    if o2 is not None and o2 > 0 and is_allowed('Oxygen Saturation'):
         if o2 < 95: results.append({'param': 'Oxygen Saturation', 'val': o2, 'status': 'LOW', 'msg': '[HYPOXEMIA] Low oxygen saturation detected'})
         elif 95 <= o2 <= 100: results.append({'param': 'Oxygen Saturation', 'val': o2, 'status': 'NORMAL', 'msg': '[NORMAL] Oxygen level normal'})
         
     temp = data.get('body_temperature_c')
-    if temp is not None and temp > 0:
+    if temp is not None and temp > 0 and is_allowed('Body Temperature'):
         if temp < 36.1: results.append({'param': 'Body Temperature', 'val': temp, 'status': 'LOW', 'msg': '[HYPOTHERMIA] Body temperature critically low'})
         elif 36.1 <= temp <= 37.2: results.append({'param': 'Body Temperature', 'val': temp, 'status': 'NORMAL', 'msg': '[NORMAL] Body temperature normal'})
         elif temp > 37.2: results.append({'param': 'Body Temperature', 'val': temp, 'status': 'HIGH', 'msg': '[FEVER] Elevated body temperature detected'})
 
     # Heart Diagnostics
     cp = data.get('cp')
-    if cp is not None and cp >= 0:
+    if cp is not None and cp >= 0 and is_allowed('Chest Pain Severity'):
         if cp <= 1: results.append({'param': 'Chest Pain Severity', 'val': cp, 'status': 'NORMAL', 'msg': '[NORMAL] No significant cardiac pain'})
         elif cp >= 2: results.append({'param': 'Chest Pain Severity', 'val': cp, 'status': 'HIGH', 'msg': '[ANGINA_RISK] Possible coronary artery disease'})
 
     exang = data.get('exang')
-    if exang is not None and exang >= 0:
+    if exang is not None and exang >= 0 and is_allowed('Exercise Induced Angina'):
         if exang == 0: results.append({'param': 'Exercise Induced Angina', 'val': exang, 'status': 'NORMAL', 'msg': '[NORMAL] Normal exercise tolerance'})
         elif exang >= 1: results.append({'param': 'Exercise Induced Angina', 'val': exang, 'status': 'HIGH', 'msg': '[EXERCISE_ANGINA] Exercise induced angina detected'})
 
     ca = data.get('ca')
-    if ca is not None and ca >= 0:
+    if ca is not None and ca >= 0 and is_allowed('Major Vessel Blockage'):
         if ca == 0: results.append({'param': 'Major Vessel Blockage', 'val': ca, 'status': 'NORMAL', 'msg': '[NORMAL] Adequate coronary blood flow'})
         elif ca >= 1: results.append({'param': 'Major Vessel Blockage', 'val': ca, 'status': 'HIGH', 'msg': '[CORONARY_BLOCKAGE] Coronary artery blockage risk'})
 
     restecg = data.get('restecg')
-    if restecg is not None and restecg >= 0:
+    if restecg is not None and restecg >= 0 and is_allowed('Resting ECG'):
         if restecg == 0: results.append({'param': 'Resting ECG', 'val': restecg, 'status': 'NORMAL', 'msg': '[NORMAL_ECG] ECG within healthy limits'})
         elif restecg >= 1: results.append({'param': 'Resting ECG', 'val': restecg, 'status': 'HIGH', 'msg': '[ECG_ABNORMALITY] Cardiac abnormality detected'})
         
     oldpeak = data.get('oldpeak')
-    if oldpeak is not None and oldpeak >= 0:
+    if oldpeak is not None and oldpeak >= 0 and is_allowed('ST Depression'):
         if oldpeak < 0.5: results.append({'param': 'ST Depression', 'val': oldpeak, 'status': 'NORMAL', 'msg': '[NORMAL] No ischemia pattern'})
         elif oldpeak >= 1: results.append({'param': 'ST Depression', 'val': oldpeak, 'status': 'HIGH', 'msg': '[ISCHEMIA_RISK] Myocardial ischemia suspected'})
         
     thalach = data.get('thalach')
-    if thalach is not None and thalach > 0:
+    if thalach is not None and thalach > 0 and is_allowed('Max Heart Rate'):
         if thalach < 90: results.append({'param': 'Max Heart Rate', 'val': thalach, 'status': 'LOW', 'msg': '[LOW_CARDIAC_RESPONSE] Low cardiac response'})
         elif 90 <= thalach <= 170: results.append({'param': 'Max Heart Rate', 'val': thalach, 'status': 'NORMAL', 'msg': '[NORMAL] Normal cardiac response'})
         elif thalach > 170: results.append({'param': 'Max Heart Rate', 'val': thalach, 'status': 'HIGH', 'msg': '[HIGH_CARDIAC_RESPONSE] Elevated cardiac stress'})
 
     slope = data.get('slope')
-    if slope is not None and slope >= 0:
+    if slope is not None and slope >= 0 and is_allowed('ST Slope'):
         if slope == 0: results.append({'param': 'ST Slope', 'val': slope, 'status': 'NORMAL', 'msg': '[NORMAL] Healthy ST slope'})
         elif slope >= 1: results.append({'param': 'ST Slope', 'val': slope, 'status': 'HIGH', 'msg': '[ISCHEMIC_PATTERN] Possible myocardial ischemia'})
 
     thal = data.get('thal')
-    if thal is not None and thal >= 0:
+    if thal is not None and thal >= 0 and is_allowed('Thalassemia'):
         if thal == 0: results.append({'param': 'Thalassemia', 'val': thal, 'status': 'NORMAL', 'msg': '[NORMAL] Normal hemoglobin pattern'})
         elif thal >= 1: results.append({'param': 'Thalassemia', 'val': thal, 'status': 'HIGH', 'msg': '[THALASSEMIA_DEFECT] Blood disorder detected'})
 
@@ -591,17 +591,17 @@ def evaluate_manual_clinical_risk(data, target_block=None):
     # INFECTIOUS TESTS
     typhoid_o = data.get('typhoid_o')
     typhoid_h = data.get('typhoid_h')
-    if typhoid_o == 'POSITIVE' or typhoid_h == 'POSITIVE':
+    if (typhoid_o == 'POSITIVE' or typhoid_h == 'POSITIVE') and is_allowed('Typhoid'):
         results.append({'param': 'Typhoid', 'val': 'Positive', 'status': 'HIGH', 'msg': '[TYPHOID_DETECTED] Typhoid infection detected'})
-    elif typhoid_o == 'NEGATIVE' and typhoid_h == 'NEGATIVE':
+    elif typhoid_o == 'NEGATIVE' and typhoid_h == 'NEGATIVE' and is_allowed('Typhoid'):
         results.append({'param': 'Typhoid', 'val': 'Negative', 'status': 'NORMAL', 'msg': '[NO_INFECTION] Typhoid infection not detected'})
 
     d_igg = data.get('dengue_igg')
     d_igm = data.get('dengue_igm')
     d_ns1 = data.get('dengue_ns1')
-    if d_igg in ['REACTIVE', 'WEAK REACTIVE'] or d_igm in ['REACTIVE', 'WEAK REACTIVE'] or d_ns1 in ['REACTIVE', 'WEAK REACTIVE']:
+    if (d_igg in ['REACTIVE', 'WEAK REACTIVE'] or d_igm in ['REACTIVE', 'WEAK REACTIVE'] or d_ns1 in ['REACTIVE', 'WEAK REACTIVE']) and is_allowed('Dengue'):
         results.append({'param': 'Dengue', 'val': 'Positive', 'status': 'HIGH', 'msg': '[DENGUE_DETECTED] Dengue infection detected'})
-    elif d_igg == 'NON-REACTIVE' and d_igm == 'NON-REACTIVE' and d_ns1 == 'NON-REACTIVE':
+    elif d_igg == 'NON-REACTIVE' and d_igm == 'NON-REACTIVE' and d_ns1 == 'NON-REACTIVE' and is_allowed('Dengue'):
         results.append({'param': 'Dengue', 'val': 'Negative', 'status': 'NORMAL', 'msg': '[NO_INFECTION] Dengue not detected'})
 
     return results
@@ -741,6 +741,15 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
         with tab_obs:
             render_luxury_header("Clinical Analysis Summary", icon="🧪")
             
+            if target_block:
+                st.markdown(f"""
+                <div style="display: inline-block; background: rgba(0, 210, 255, 0.1); border: 1px solid #00d2ff; 
+                            color: #00d2ff; padding: 5px 15px; border-radius: 20px; font-size: 0.8rem; 
+                            font-weight: 700; margin-bottom: 20px; text-transform: uppercase; letter-spacing: 1px;">
+                    🎯 Targeted Module: {target_block.replace('_', ' ')}
+                </div>
+                """, unsafe_allow_html=True)
+
             # Extract vital indicators from the provided data
             vital_indicators = evaluate_manual_clinical_risk(extracted_data, target_block=target_block)
             
@@ -826,14 +835,14 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 "factors": ml_result_heart.get('top_factors', [])
             })
         ml_db_logs.append({"disease": "Heart Disease", "status": ml_result_heart['status'], "prediction": ml_result_heart.get('prediction'), "confidence": ml_result_heart.get('confidence')})
-    # Always check Vitals Fallback for Heart Risk to ensure clinical safety
-    if 'cholesterol' in extracted_data or 'systolic' in extracted_data:
-        v_chol = extracted_data.get('cholesterol', 0)
-        v_sys = extracted_data.get('systolic', 0)
-        rule_heart_risk = 0.0
-        if v_chol > 240 or v_sys > 160: rule_heart_risk = 0.85
-        elif v_chol > 200 or v_sys > 140: rule_heart_risk = 0.55
-        risk_data["Heart Risk"] = max(risk_data["Heart Risk"], rule_heart_risk)
+        # Heart Diagnostics Fallsback (Only if block is Heart or Core Vitals)
+        if 'cholesterol' in extracted_data or 'systolic' in extracted_data:
+            v_chol = extracted_data.get('cholesterol', 0)
+            v_sys = extracted_data.get('systolic', 0)
+            rule_heart_risk = 0.0
+            if v_chol > 240 or v_sys > 160: rule_heart_risk = 0.85
+            elif v_chol > 200 or v_sys > 140: rule_heart_risk = 0.55
+            risk_data["Heart Risk"] = max(risk_data["Heart Risk"], rule_heart_risk)
     
     # --- 3. HYPERTENSION LOGIC ---
     if (not target_block or target_block in ['hypertension', 'heart', 'core_vitals']) and 'systolic' in extracted_data and 'diastolic' in extracted_data:
@@ -881,29 +890,29 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
     # --- 7. INFECTIOUS DISEASES LOGIC (Typhoid & Dengue) ---
     if not target_block or target_block == 'pathology':
         inf_dis_risk = 0.0
-    # Typhoid logic
-    if any(k in extracted_data for k in ['typhoid_o', 'typhoid_h']):
-        typhoid_res = evaluate_typhoid(o_ag=extracted_data.get('typhoid_o'), h_ag=extracted_data.get('typhoid_h'))
-        if typhoid_res["detected"]:
-            inf_dis_risk = max(inf_dis_risk, 0.80)
-            if not any(c['disease'] == "Enteric Fever (Typhoid)" for c in detected_conditions):
-                detected_conditions.append({
-                    "disease": "Enteric Fever (Typhoid)", "severity": typhoid_res["category"],
-                    "reason": typhoid_res["reason"],
-                    "advice": "Follow an easily digestible diet (Bland diet). Complete the prescribed antibiotic course and maintain high hygiene."
-                })
-    # Dengue logic
-    if any(k in extracted_data for k in ['dengue_igg', 'dengue_igm', 'dengue_ns1']):
-        dengue_res = evaluate_dengue(igg=extracted_data.get('dengue_igg'), igm=extracted_data.get('dengue_igm'), ns1=extracted_data.get('dengue_ns1'))
-        if dengue_res["detected"]:
-            inf_dis_risk = max(inf_dis_risk, 0.85)
-            if not any(c['disease'] == "Dengue Fever" for c in detected_conditions):
-                detected_conditions.append({
-                    "disease": "Dengue Fever", "severity": dengue_res["category"],
-                    "reason": dengue_res["reason"],
-                    "advice": "Bed rest and intensive hydration. Monitor platelet count every 12-24 hours. Avoid aspirin-based medications."
-                })
-    risk_data["Infectious Dis."] = inf_dis_risk
+        # Typhoid logic
+        if any(k in extracted_data for k in ['typhoid_o', 'typhoid_h']):
+            typhoid_res = evaluate_typhoid(o_ag=extracted_data.get('typhoid_o'), h_ag=extracted_data.get('typhoid_h'))
+            if typhoid_res["detected"]:
+                inf_dis_risk = max(inf_dis_risk, 0.80)
+                if not any(c['disease'] == "Enteric Fever (Typhoid)" for c in detected_conditions):
+                    detected_conditions.append({
+                        "disease": "Enteric Fever (Typhoid)", "severity": typhoid_res["category"],
+                        "reason": typhoid_res["reason"],
+                        "advice": "Follow an easily digestible diet (Bland diet). Complete the prescribed antibiotic course and maintain high hygiene."
+                    })
+        # Dengue logic
+        if any(k in extracted_data for k in ['dengue_igg', 'dengue_igm', 'dengue_ns1']):
+            dengue_res = evaluate_dengue(igg=extracted_data.get('dengue_igg'), igm=extracted_data.get('dengue_igm'), ns1=extracted_data.get('dengue_ns1'))
+            if dengue_res["detected"]:
+                inf_dis_risk = max(inf_dis_risk, 0.85)
+                if not any(c['disease'] == "Dengue Fever" for c in detected_conditions):
+                    detected_conditions.append({
+                        "disease": "Dengue Fever", "severity": dengue_res["category"],
+                        "reason": dengue_res["reason"],
+                        "advice": "Bed rest and intensive hydration. Monitor platelet count every 12-24 hours. Avoid aspirin-based medications."
+                    })
+        risk_data["Infectious Dis."] = inf_dis_risk
 
     # --- 8. LIVER FUNCTION LOGIC ---
     if (not target_block or target_block == 'pathology') and any(k in extracted_data for k in ['sgot', 'sgpt']):
