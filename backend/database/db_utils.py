@@ -296,6 +296,26 @@ def reset_entire_database():
             cursor.close()
             conn.close()
 
+def get_db_status():
+    """Returns the current database configuration (sanitized) and connection status."""
+    config = {
+        "HOST": DB_HOST,
+        "USER": DB_USER,
+        "NAME": DB_NAME,
+        "PORT": DB_PORT,
+        "SSLMODE": DB_SSLMODE
+    }
+    
+    try:
+        conn = get_db_connection()
+        if conn:
+            conn.close()
+            return True, "Connected Successfully", config
+        else:
+            return False, "Connection Failed (get_db_connection returned None)", config
+    except Exception as e:
+        return False, str(e), config
+
 def log_audit_action(cursor, action, details, user_id=None, ip_address=None):
     """Auxiliary function to insert audit logs using an active cursor."""
     try:

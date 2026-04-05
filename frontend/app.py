@@ -32,7 +32,7 @@ from database.db_utils import (
     activate_user_account, store_otp, initialize_tables,
     verify_otp_db, get_user_id_by_email, get_system_utilization, delete_login_activity,
     get_latest_patient_insight, add_diagnostic_session, add_clinical_vital,
-    add_clinical_observation
+    add_clinical_observation, get_db_status
 )
 from auth.otp_manager import generate_otp, send_otp
 from ocr.ocr_engine import process_document_to_dict
@@ -196,6 +196,18 @@ def render_login_ui():
             <div class="auth-subtitle">Advanced Clinical Diagnostic Intelligence</div>
         </div>
     """, unsafe_allow_html=True)
+
+    # --- Sidebar Diagnostic Health (ONLY for debugging connection issues) ---
+    with st.sidebar:
+        st.markdown("### 🔧 Project Health")
+        if st.button("Check Database Connection"):
+            success, message, config = get_db_status()
+            if success:
+                st.success("✅ Database Connected!")
+            else:
+                st.error(f"❌ {message}")
+                st.info(f"**Loaded Config:**\n- Host: `{config['HOST']}`\n- User: `{config['USER']}`\n- DB: `{config['NAME']}`\n- SSL: `{config['SSLMODE']}`")
+        st.divider()
 
     tab_login, tab_reg, tab_rec = st.tabs(["🔒 Log In", "📝 Register", "🔑 Recovery"])
 
