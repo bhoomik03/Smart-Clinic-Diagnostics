@@ -1888,10 +1888,10 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                     systolic = st.number_input("Systolic BP (mmHg)", min_value=0, max_value=250, value=0, key="mi_sys")
                     diastolic = st.number_input("Diastolic BP (mmHg)", min_value=0, max_value=150, value=0, key="mi_dia")
                 with col2:
-                    glucose_v = st.number_input("Glucose (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, key="mi_glu_v", on_change=sync_glu_v)
+                    glucose_v = st.number_input("Glucose (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, key="mi_glu_v")
                     cholesterol = st.number_input("Total Cholesterol (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, key="mi_chol")
                 with col3:
-                    bmi_v = st.number_input("BMI", min_value=0.0, max_value=60.0, value=0.0, key="mi_bmi_v", on_change=sync_bmi_v)
+                    bmi_v = st.number_input("BMI", min_value=0.0, max_value=60.0, value=0.0, key="mi_bmi_v")
                     oxygen = st.number_input("Oxygen Saturation (%)", min_value=0, max_value=100, value=0, key="mi_oxy")
                 with col4:
                     heart_rate = st.number_input("Heart Rate (bpm)", min_value=0, max_value=200, value=0, key="mi_hr")
@@ -1903,8 +1903,8 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             with st.expander("🩸 Advanced Diabetic Specifics", expanded=True):
                 col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    glucose_d = st.number_input("Blood Glucose (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, key="mi_glu_d", on_change=sync_glu_d)
-                    bmi_d = st.number_input("Current BMI", min_value=0.0, max_value=60.0, value=0.0, key="mi_bmi_d", on_change=sync_bmi_d)
+                    glucose_d = st.number_input("Blood Glucose (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, key="mi_glu_d")
+                    bmi_d = st.number_input("Current BMI", min_value=0.0, max_value=60.0, value=0.0, key="mi_bmi_d")
                 with col2:
                     if p_sex == "Female":
                         pregnancies = st.number_input("Pregnancies", min_value=0, max_value=20, value=0, key="mi_preg")
@@ -1997,8 +1997,8 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 submit_path = st.form_submit_button("🧪 Analyze Pathology & Symptoms Only", width="stretch")
                 submit_general = st.form_submit_button("🩺 Analyze General Disease Only", width="stretch")
 
-            glucose = glucose_v # Both are synced
-            bmi = bmi_v # Both are synced
+            glucose = glucose_v if glucose_v > 0 else glucose_d
+            bmi = bmi_v if bmi_v > 0 else bmi_d
             
             # Build dict for current state evaluation
             manual_data = {}
