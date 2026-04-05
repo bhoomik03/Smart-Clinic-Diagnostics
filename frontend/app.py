@@ -1080,11 +1080,13 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                                 break
                         add_clinical_vital(session_id, name, val, unit, status=status)
                         
-                # QUIET MODE: No success message to keep UI professional
+                # SUCCESS NOTIFICATION: Let the user know the record is ARCHIVED
+                st.toast("✅ Diagnostic Data Archived Successfully!", icon="💾")
+                st.success("✨ **Clinical Archive Updated**: Your diagnostic session has been securely stored in the system history.")
             else:
                 st.warning("⚠️ Record created but diagnostic session could not be initialized.")
         else:
-            st.error("❌ Failed to save patient record to database.")
+            st.error("❌ Failed to save patient record to database. Please ensure your profile name is complete.")
             
     # --- 12. RISK VISUALIZATION DASHBOARD ---
     if tabs:
@@ -2087,8 +2089,8 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
 
             # --- STEP 2: FULL REPORT (Only if a block is active) ---
             if active_block:
-                st.success(f"✅ **{active_block.upper()}** appraisal complete. You can now generate the full AI report.")
-                submit_btn = st.form_submit_button("📊 Generate Comprehensive Auto-Diagnostic Report (Targeted Pipeline)", type="primary", width="stretch")
+                st.success(f"✅ **{active_block.upper()}** appraisal complete. Click below to **archieve diagnostic history** and generate the full AI report.")
+                submit_btn = st.form_submit_button("📊 ARCHIVE HISTORY & Generate Comprehensive AI Report", type="primary", width="stretch")
             else:
                 submit_btn = False
 
