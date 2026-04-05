@@ -1785,13 +1785,13 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 st.session_state.mi_ins = 200.0
                 st.session_state.mi_dpf = 1.2
                 
-                st.session_state.mi_cp = 3
-                st.session_state.mi_restecg = 2
-                st.session_state.mi_thalach = 80
+                st.session_state.mi_cp = 2
+                st.session_state.mi_restecg = 1
+                st.session_state.mi_thalach = 190
                 st.session_state.mi_exang = 1
-                st.session_state.mi_oldpeak = 3.5
+                st.session_state.mi_oldpeak = 4.0
                 st.session_state.mi_slope = 2
-                st.session_state.mi_ca = 2
+                st.session_state.mi_ca = 3
                 st.session_state.mi_thal = 2
                 
                 st.session_state.mi_creat = 2.5
@@ -2040,28 +2040,20 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             active_block = st.session_state.get('active_block')
             dynamic_results = evaluate_manual_clinical_risk(manual_data, target_block=active_block)
             
-            # Filter results based on active block
-            filtered_results = []
-            if active_block:
-                # Map parameters to blocks for better UX as requested
-                block_map = {
-                    'diabetes': ['Glucose', 'Insulin', 'BMI', 'Pregnancies', 'Diabetes Pedigree'],
-                    'heart': ['Systolic BP', 'Diastolic BP', 'Cholesterol', 'Heart Rate', 'Max Heart Rate', 'ST Depression', 'Resting ECG'],
-                    'core_vitals': ['Systolic BP', 'Diastolic BP', 'Glucose', 'BMI', 'Heart Rate', 'Oxygen Saturation', 'Body Temp'],
-                    'pathology': ['Creatinine', 'Hemoglobin', 'WBC', 'Platelets', 'AST', 'ALT', 'CRP', 'Typhoid', 'Dengue'],
-                    'general': ['Fever', 'Cough', 'Fatigue', 'Shortness of breath']
-                }
-                allowed = block_map.get(active_block, [])
-                filtered_results = [r for r in dynamic_results if any(a.lower() in r['param'].lower() for a in allowed)]
-
+            # Use dynamic_results directly for live feedback
+            # Filtering is already handled strictly inside evaluate_manual_clinical_risk
             render_luxury_header("Live Clinical Risk Indicators", icon="🔴")
-            if filtered_results:
+            
+            if dynamic_results and active_block:
                 indicators_html = "<div style='display: flex; flex-wrap: wrap; gap: 10px; margin-top: 15px;'>"
-                for r in filtered_results:
-                    color = "#3B82F6" if r['status'] == 'LOW' else "#10B981" if r['status'] == 'NORMAL' else "#EF4444"
-                    indicators_html += f"<span style='background-color:{color}10; border: 1px solid {color}40; color:{color}; padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 0.85rem;'>{r['param']}: {r['status']}</span>"
+                for r in dynamic_results:
+                    # Support HIGH, LOW, and NORMAL colors
+                    color = "#3B82F6" if r['status'] == 'LOW' else ("#10B981" if r['status'] == 'NORMAL' else "#EF4444")
+                    indicators_html += f"<span style='background-color:{color}10; border: 1px solid {color}80; color:{color}; padding: 8px 16px; border-radius: 10px; font-weight: 700; font-size: 0.85rem; border-left: 4px solid {color};'>{r['param']}: {r['status']}</span>"
                 indicators_html += "</div>"
                 st.markdown(indicators_html, unsafe_allow_html=True)
+            elif not active_block:
+                st.info("💡 **Clinical Tip**: Select a diagnostic module above (e.g., 'Analyze Heart') to activate live markers.")
             else:
                 st.info("Enter values and click an **Analyze** button inside a block to see live markers.")
 
