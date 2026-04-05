@@ -1306,7 +1306,11 @@ def store_otp(email_or_contact, otp_code, expiry_minutes=5):
     conn = get_db_connection()
     if not conn: return False
     try:
-        expiry = get_ist_now() + dt_module.timedelta(minutes=expiry_minutes)
+        # Robust Aware Calculation
+        ist_tz = pytz.timezone('Asia/Kolkata')
+        now_ist = dt_module.datetime.now(ist_tz)
+        expiry = now_ist + dt_module.timedelta(minutes=expiry_minutes)
+        
         cursor = conn.cursor()
         
         # Mark previous OTPs for this email/contact as used
@@ -1344,12 +1348,15 @@ def verify_otp_db(email_or_contact, entered_otp):
                 conn.commit()
                 return False, "Too many failed attempts. Request a new OTP."
                 
-            # Timezone Safety Guard: Ensure expiry_time is aware IST
+            # Forced Aware Comparison Safety
             ist_tz = pytz.timezone('Asia/Kolkata')
+            now_ist = dt_module.datetime.now(ist_tz)
+            
+            # If retrieved from DB as naive, localize as IST (since it's TIMESTAMPTZ)
             if expiry_time.tzinfo is None:
                 expiry_time = pytz.utc.localize(expiry_time).astimezone(ist_tz)
             
-            if get_ist_now() > expiry_time:
+            if now_ist > expiry_time:
                 cursor.execute("UPDATE otp_verification SET is_used = TRUE WHERE id = %s", (otp_id,))
                 conn.commit()
                 return False, "OTP has expired."
