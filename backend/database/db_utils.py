@@ -1365,10 +1365,13 @@ def verify_otp_db(email_or_contact, entered_otp):
             now_ist = get_ist_now()
             expiry_ist = ensure_ist(expiry_time)
             
-            if now_ist > expiry_ist:
-                cursor.execute("UPDATE otp_verification SET is_used = TRUE WHERE id = %s", (otp_id,))
-                conn.commit()
-                return False, "OTP has expired."
+            try:
+                if now_ist > expiry_ist:
+                    cursor.execute("UPDATE otp_verification SET is_used = TRUE WHERE id = %s", (otp_id,))
+                    conn.commit()
+                    return False, "OTP has expired."
+            except Exception as comp_err:
+                return False, f"Comparison Error: {comp_err} | Now: {type(now_ist)} ({now_ist.tzinfo}) | Expiry: {type(expiry_ist)} ({expiry_ist.tzinfo})"
                 
             if str(otp_code) == str(entered_otp):
                 cursor.execute("UPDATE otp_verification SET is_used = TRUE WHERE id = %s", (otp_id,))
