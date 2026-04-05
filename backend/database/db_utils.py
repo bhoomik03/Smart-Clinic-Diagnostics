@@ -4,12 +4,12 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import os
 import bcrypt
 import pandas as pd
-import datetime
+import datetime as dt_module
 import pytz
 
 def get_ist_now():
     """Returns the current time in Asia/Kolkata (IST)."""
-    return datetime.datetime.now(pytz.timezone('Asia/Kolkata'))
+    return dt_module.datetime.now(pytz.timezone('Asia/Kolkata'))
 
 def get_env_var(key, default):
     """Helper to get variables from Streamlit Secrets or Environment Variables."""

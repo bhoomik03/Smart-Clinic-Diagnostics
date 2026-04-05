@@ -6,7 +6,7 @@ import re
 import plotly.express as px
 import plotly.graph_objects as go
 import base64
-import datetime
+import datetime as dt_module
 import pytz
 
 # Centralized IST Helper
@@ -629,7 +629,7 @@ def evaluate_manual_clinical_risk(data, target_block=None):
 def get_report_html(patient_name, patient_age, patient_gender, conditions):
     """Generates a professional diagnostic report in HTML format."""
     # Ensure IST date string
-    ist_now = localize_ist(datetime.datetime.now())
+    ist_now = localize_ist(dt_module.datetime.now())
     date_str = ist_now.strftime("%d %b %Y, %H:%M")
     
     conditions_html = ""
@@ -653,7 +653,7 @@ def get_report_html(patient_name, patient_age, patient_gender, conditions):
                 <p style="margin:0; opacity: 0.7;">Clinical Diagnostic Summary</p>
             </div>
             <div style="text-align: right;">
-                <p style="margin:0; font-weight: 600;">Report ID: #DIAG-{int(datetime.datetime.now().timestamp())}</p>
+                <p style="margin:0; font-weight: 600;">Report ID: #DIAG-{int(dt_module.datetime.now().timestamp())}</p>
                 <p style="margin:0; opacity: 0.7;">Date: {date_str}</p>
             </div>
         </div>
@@ -2258,7 +2258,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             # Clinical Trends Data (Starting from Jan of current year)
             history_df['Date'] = pd.to_datetime(history_df['timestamp'])
             history_df['MonthYear'] = history_df['Date'].dt.strftime('%b %Y')
-            now_val = localize_ist(datetime.datetime.now())
+            now_val = localize_ist(dt_module.datetime.now())
             # Start from Jan 2026 specifically as requested
             month_range = [ (pd.Timestamp(2026, 1, 1) + pd.DateOffset(months=i)).strftime('%b %Y') for i in range(now_val.month) ]
             range_df = pd.DataFrame({'MonthYear': month_range})
@@ -2982,7 +2982,7 @@ def render_admin_dashboard():
             with st.expander("🔐 Disaster Recovery & Backups"):
                 st.write("Generate an encrypted node backup for archival purposes.")
                 if st.button("Initiate Encrypted Backup", type="secondary", use_container_width=True):
-                    backup_data = b"-- Encrypted System Snapshot\n-- Generated for: " + st.session_state.username.encode() + b"\n-- Timestamp: " + str(datetime.datetime.now()).encode()
+                    backup_data = b"-- Encrypted System Snapshot\n-- Generated for: " + st.session_state.username.encode() + b"\n-- Timestamp: " + str(dt_module.datetime.now()).encode()
                     st.download_button("💾 Download Snapshot (.sql)", data=backup_data, 
                                      file_name=f"system_bkp_{datetime.date.today()}.sql", 
                                      mime="application/sql", use_container_width=True)
@@ -3143,7 +3143,7 @@ def render_admin_dashboard():
                 st.download_button(
                     "📥 Export Full Registry (CSV)",
                     data=reg_df.to_csv(index=False).encode('utf-8'),
-                    file_name=f"registration_registry_{localize_ist(datetime.datetime.now()).strftime('%Y%m%d')}.csv",
+                    file_name=f"registration_registry_{localize_ist(dt_module.datetime.now()).strftime('%Y%m%d')}.csv",
                     mime="text/csv",
                     type="secondary"
                 )
