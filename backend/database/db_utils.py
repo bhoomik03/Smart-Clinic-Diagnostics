@@ -4,13 +4,13 @@ from psycopg2.extensions import ISOLATION_LEVEL_AUTOCOMMIT
 import os
 import bcrypt
 import pandas as pd
-import datetime as dt_module
+import datetime
 import pytz
 
 def get_ist_now():
     """Returns the current time in Asia/Kolkata (IST) as an aware object."""
     ist_tz = pytz.timezone('Asia/Kolkata')
-    return dt_module.datetime.now(ist_tz)
+    return datetime.datetime.now(ist_tz)
 
 def ensure_ist(dt_obj):
     """Safety helper to force ANY datetime object to be an aware IST timestamp."""
@@ -1322,7 +1322,7 @@ def store_otp(email_or_contact, otp_code, expiry_minutes=5):
     try:
         # Bulletproof Aware Calculation
         now_ist = get_ist_now()
-        expiry = now_ist + dt_module.timedelta(minutes=expiry_minutes)
+        expiry = now_ist + datetime.timedelta(minutes=expiry_minutes)
         
         cursor = conn.cursor()
         
