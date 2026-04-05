@@ -715,6 +715,10 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
         "Blood (Haemogram)": 0.0, "Infectious Dis.": 0.0, "Liver Function": 0.0,
         "Inflammation": 0.0, "General Symptoms": 0.0
     }
+    
+    # Initialize local markers for safety (Fixes UnboundLocalError)
+    inf_dis_risk = 0.0
+    rule_heart_risk = 0.0
 
     # --- TAB 1: IMMEDIATE VITAL OBSERVATIONS ---
     if tabs:
@@ -2015,8 +2019,11 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 submit_btn = False
 
         # --- TRIGGER LOGIC ---
-        # Any of the manual "Analyze" buttons or the main comprehensive button
-        any_submit = submit_btn or submit_dia or submit_heart or submit_path or submit_core_vitals or submit_general
+        # IMPORTANT: any_submit should ONLY be True for Step 2 or Auto-demo mode.
+        # Step 1 buttons (submit_dia, etc.) should update st.session_state.active_block 
+        # but NOT trigger the full diagnostic pipeline.
+        
+        any_submit = submit_btn # Only Step 2 button triggers the full pipeline
         
         # Handle Demo Mode auto-submission
         if st.session_state.get('auto_submit'):
