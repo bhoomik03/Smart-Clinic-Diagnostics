@@ -416,7 +416,7 @@ def evaluate_manual_clinical_risk(data, target_block=None):
     # Define block mapping for strict filtering as requested by user
     # This prevents parameters from one block showing up in another's report
     block_map = {
-        'diabetes': ['Pregnancies', 'Skin Thickness', 'Insulin', 'Diabetes Pedigree'],
+        'diabetes': ['Glucose', 'Pregnancies', 'Skin Thickness', 'Insulin', 'Diabetes Pedigree', 'BMI'],
         'heart': ['Chest Pain Severity', 'Exercise Induced Angina', 'Major Vessel Blockage', 'Resting ECG', 'ST Depression', 'Max Heart Rate', 'ST Slope', 'Thalassemia'],
         'core_vitals': ['Systolic BP', 'Diastolic BP', 'Glucose', 'BMI', 'Heart Rate', 'Oxygen Saturation', 'Body Temperature', 'Total Cholesterol'],
         'pathology': ['Creatinine', 'Hemoglobin', 'WBC', 'Platelets', 'AST', 'ALT', 'CRP', 'Typhoid', 'Dengue'],
