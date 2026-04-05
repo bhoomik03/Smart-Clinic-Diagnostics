@@ -544,18 +544,18 @@ def get_system_utilization(start_date=None, end_date=None):
         params = [start_date, next_day]
 
     reg_query = f"""
-    SELECT DATE(created_at) as scan_date, COUNT(*) as count
+    SELECT DATE(created_at AT TIME ZONE 'Asia/Kolkata') as scan_date, COUNT(*) as count
     FROM users
     {date_filter_reg}
-    GROUP BY DATE(created_at)
+    GROUP BY DATE(created_at AT TIME ZONE 'Asia/Kolkata')
     ORDER BY scan_date ASC
     """
     
     sess_query = f"""
-    SELECT DATE(visit_date) as scan_date, COUNT(*) as count
+    SELECT DATE(visit_date AT TIME ZONE 'Asia/Kolkata') as scan_date, COUNT(*) as count
     FROM diagnostic_sessions
     {date_filter_sess}
-    GROUP BY DATE(visit_date)
+    GROUP BY DATE(visit_date AT TIME ZONE 'Asia/Kolkata')
     ORDER BY scan_date ASC
     """
     
