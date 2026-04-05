@@ -991,8 +991,45 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
             # Create a dedicated diagnostic session for this run
             session_id = add_diagnostic_session(user_id, patient_id, "Auto Prediction Pipeline")
             if session_id:
+                # 1. Save Rule-based Observations
                 for cond in detected_conditions:
                     add_clinical_observation(session_id, cond['disease'], cond['severity'], cond['reason'])
+                
+                # 2. Save ML Prediction Results
+                for log in ml_db_logs:
+                    if log['status'] == 'success':
+                        add_ml_prediction(
+                            session_id, 
+                            log['disease'], 
+                            log['prediction'], 
+                            probability=log.get('confidence'),
+                            model_version="1.0"
+                        )
+                
+                # 3. Save Captured Clinical Vitals
+                # Mapping of codes to human readable names & units
+                vitals_meta = {
+                    'systolic': ('Systolic BP', 'mmHg'), 'diastolic': ('Diastolic BP', 'mmHg'),
+                    'glucose': ('Glucose', 'mg/dL'), 'cholesterol': ('Total Cholesterol', 'mg/dL'),
+                    'bmi': ('BMI', 'kg/m2'), 'oxygen_saturation': ('Oxygen Saturation', '%'),
+                    'heart_rate_bpm': ('Heart Rate', 'bpm'), 'body_temperature_c': ('Body Temperature', '°C'),
+                    'creatinine': ('Creatinine', 'mg/dL'), 'hb': ('Hemoglobin', 'gm%'),
+                    'wbc': ('WBC Count', '/cmm'), 'platelets': ('Platelets', '/cmm'),
+                    'sgot': ('SGOT/AST', 'U/L'), 'sgpt': ('SGPT/ALT', 'U/L'),
+                    'crp': ('CRP', 'mg/L')
+                }
+                
+                for key, val in extracted_data.items():
+                    if key in vitals_meta and isinstance(val, (int, float)) and val > 0:
+                        name, unit = vitals_meta[key]
+                        # Determine status based on evaluation results if available
+                        status = 'Normal'
+                        for v_ind in vital_indicators:
+                            if v_ind['param'].lower() == name.lower():
+                                status = v_ind['status'].capitalize()
+                                break
+                        add_clinical_vital(session_id, name, val, unit, status=status)
+                        
                 # QUIET MODE: No success message to keep UI professional
             else:
                 st.warning("⚠️ Record created but diagnostic session could not be initialized.")

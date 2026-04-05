@@ -245,13 +245,26 @@ def log_audit_action(cursor, action, details, user_id=None, ip_address=None):
         print(f"Error logging audit action: {e}")
 
 def add_patient(name, age, gender, contact="", user_id=None):
-    """Inserts a new patient and returns their ID."""
+    """Inserts a new patient or returns existing ID if details match for the user."""
     conn = get_db_connection()
     if not conn: return None
     
     patient_id = None
     try:
         cursor = conn.cursor()
+        
+        # --- DEDUPLICATION LOGIC ---
+        if user_id:
+            # Check if this user already has a patient record with these exact details
+            cursor.execute(
+                "SELECT id FROM patients WHERE user_id = %s AND LOWER(name) = LOWER(%s) AND age = %s AND gender = %s",
+                (user_id, name, age, gender)
+            )
+            existing = cursor.fetchone()
+            if existing:
+                return existing[0]
+        
+        # If no existing record or no user_id, insert new
         cursor.execute(
             "INSERT INTO patients (name, age, gender, contact, user_id) VALUES (%s, %s, %s, %s, %s) RETURNING id",
             (name, age, gender, contact, user_id)
