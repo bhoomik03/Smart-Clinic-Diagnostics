@@ -6,13 +6,27 @@ import bcrypt
 import pandas as pd
 import datetime
 
-# Database credentials (read from environment variables with safe defaults)
-DB_USER = os.environ.get("MEDICAL_AI_DB_USER", "postgres")
-DB_PASS = os.environ.get("MEDICAL_AI_DB_PASS", "1234")
-DB_HOST = os.environ.get("MEDICAL_AI_DB_HOST", "localhost")
-DB_PORT = os.environ.get("MEDICAL_AI_DB_PORT", "5432")
-DB_NAME = os.environ.get("MEDICAL_AI_DB_NAME", "medical_ai")
-DB_SSLMODE = os.environ.get("DB_SSLMODE", "require")
+# Attempt to load secrets from Streamlit for production reliability
+try:
+    import streamlit as st
+    ST_SECRETS = st.secrets
+except ImportError:
+    ST_SECRETS = {}
+
+def get_env_var(key, default):
+    """Helper to get variables from Streamlit Secrets or Environment Variables."""
+    val = ST_SECRETS.get(key, os.environ.get(key, default))
+    if isinstance(val, str):
+        return val.strip().replace("\n", "").replace("\r", "")
+    return val
+
+# Database credentials
+DB_USER = get_env_var("MEDICAL_AI_DB_USER", "postgres")
+DB_PASS = get_env_var("MEDICAL_AI_DB_PASS", "1234")
+DB_HOST = get_env_var("MEDICAL_AI_DB_HOST", "localhost")
+DB_PORT = get_env_var("MEDICAL_AI_DB_PORT", "5432")
+DB_NAME = get_env_var("MEDICAL_AI_DB_NAME", "medical_ai")
+DB_SSLMODE = get_env_var("DB_SSLMODE", "require")
 
 def create_database():
     """Creates the medical_ai database if it doesn't exist."""
