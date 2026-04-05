@@ -1854,9 +1854,9 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                     body_temp = st.number_input("Body Temp (°C)", min_value=0.0, max_value=45.0, value=0.0, key="mi_temp")
 
                 st.markdown("<br>", unsafe_allow_html=True)
-                submit_core_vitals = st.form_submit_button("🩸 Step 1: Evaluate Blood Sugar & Vitals Only", width="stretch")
+                submit_core_vitals = st.form_submit_button("🩸 Evaluate Blood Sugar & Vitals Only", width="stretch")
                 
-            with st.expander("🩸 Advanced Diabetic Specifics (Optional)", expanded=True):
+            with st.expander("🩸 Advanced Diabetic Specifics", expanded=True):
                 col1, col2, col3, col4 = st.columns(4)
                 with col1: 
                     if p_sex == "Female":
@@ -1868,9 +1868,9 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 with col2: skin_thickness = st.number_input("Skin Thickness (mm)", min_value=0, max_value=100, value=0, help="Triceps Skinfold Check (WHO Normal: 10-22mm)", key="mi_skin")
                 with col3: insulin = st.number_input("Insulin (mu U/ml)", min_value=0.0, max_value=900.0, value=0.0, help="Serum Insulin (WHO Normal Fasting: 2-25 mu U/ml)", key="mi_ins")
                 with col4: dpf = st.number_input("Diabetes Pedigree Function", min_value=0.0, max_value=3.0, value=0.0, format="%.3f", help="Genetic score (0-3) based on family history", key="mi_dpf")
-                submit_dia = st.form_submit_button("🩺 Step 1: Analyze Diabetes Only", width="stretch")
+                submit_dia = st.form_submit_button("🩺 Analyze Diabetes Only", width="stretch")
                 
-            with st.expander("❤️ Advanced Heart Diagnostics (Optional)", expanded=True):
+            with st.expander("❤️ Advanced Heart Diagnostics", expanded=True):
                 col1, col2, col3 = st.columns(3)
                 with col1:
                     cp = st.selectbox("Chest Pain Pattern", [-1, 0, 1, 2, 3], index=0, 
@@ -1915,9 +1915,9 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                                     "1: Fixed Defect (Stable)" if x==1 else 
                                     "2: Reversible Defect (Unstable)", 
                         help="Blood flow condition as shown on cardiac scan", key="mi_thal")
-                submit_heart = st.form_submit_button("🩺 Step 1: Analyze Heart Disease Only", width="stretch")
+                submit_heart = st.form_submit_button("🩺 Analyze Heart Disease Only", width="stretch")
 
-            with st.expander("🧪 Comprehensive Pathology Panels (Optional)", expanded=False):
+            with st.expander("🧪 Comprehensive Pathology Panels", expanded=False):
                 colA, colB, colC = st.columns(3)
                 with colA:
                     st.markdown("**Haemogram & Kidneys**")
@@ -1945,8 +1945,8 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 with colS2: s2 = st.selectbox("Symptom 2", s_list, index=0, key="mi_s2")
                 with colS3: s3 = st.selectbox("Symptom 3", s_list, index=0, key="mi_s3")
                 
-                submit_path = st.form_submit_button("🧪 Step 1: Analyze Pathology & Symptoms Only", width="stretch")
-                submit_general = st.form_submit_button("🩺 Step 1: Analyze General Disease Only", width="stretch")
+                submit_path = st.form_submit_button("🧪 Analyze Pathology & Symptoms Only", width="stretch")
+                submit_general = st.form_submit_button("🩺 Analyze General Disease Only", width="stretch")
 
             # Build dict for current state evaluation
             manual_data = {}
@@ -2029,7 +2029,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 indicators_html += "</div>"
                 st.markdown(indicators_html, unsafe_allow_html=True)
             else:
-                st.info("Enter values and click a **Step 1: Analyze** button inside a block to see live markers.")
+                st.info("Enter values and click an **Analyze** button inside a block to see live markers.")
 
             # Add professional spacing as requested
             st.markdown("<div style='height: 30px;'></div>", unsafe_allow_html=True)
@@ -2037,7 +2037,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             # --- STEP 2: FULL REPORT (Only if a block is active) ---
             if st.session_state.active_block:
                 st.success(f"✅ **{st.session_state.active_block.upper()}** appraisal complete. You can now generate the full AI report.")
-                submit_btn = st.form_submit_button("📊 Step 2: Generate Comprehensive Auto-Diagnostic Report (Targeted Pipeline)", type="primary", width="stretch")
+                submit_btn = st.form_submit_button("📊 Generate Comprehensive Auto-Diagnostic Report (Targeted Pipeline)", type="primary", width="stretch")
             else:
                 submit_btn = False
 
