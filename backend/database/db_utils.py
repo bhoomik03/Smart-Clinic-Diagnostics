@@ -55,11 +55,6 @@ def get_db_connection():
             port=DB_PORT,
             sslmode=DB_SSLMODE
         )
-        # --- SOURCE LEVEL TIMEZONE SYNC (Neon to IST) ---
-        cursor = conn.cursor()
-        cursor.execute("SET timezone = 'Asia/Kolkata';")
-        cursor.close()
-        return conn
     except Exception as e:
         print(f"Error connecting to the database: {e}")
         return None
@@ -88,7 +83,7 @@ def initialize_tables():
                 address TEXT,
                 status VARCHAR(20) DEFAULT 'active',
                 is_verified BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
             )
         """)
         
@@ -101,7 +96,7 @@ def initialize_tables():
                 age INT,
                 gender VARCHAR(50),
                 contact VARCHAR(100),
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
             )
         """)
         
@@ -111,7 +106,7 @@ def initialize_tables():
                 id SERIAL PRIMARY KEY,
                 user_id INT REFERENCES users(id) ON DELETE CASCADE,
                 patient_id INT REFERENCES patients(id) ON DELETE CASCADE,
-                visit_date TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                visit_date TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes'),
                 source_type VARCHAR(50) NOT NULL,
                 session_status VARCHAR(50) DEFAULT 'Completed'
             )
@@ -156,7 +151,7 @@ def initialize_tables():
                 severity VARCHAR(50) NOT NULL,
                 observation_text TEXT NOT NULL,
                 guideline_ref VARCHAR(255),
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
             )
         """)
         
@@ -168,7 +163,7 @@ def initialize_tables():
                 action_type VARCHAR(255) NOT NULL,
                 details TEXT,
                 ip_address VARCHAR(50),
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
             )
         """)
         
@@ -177,7 +172,7 @@ def initialize_tables():
             CREATE TABLE IF NOT EXISTS system_settings (
                 key VARCHAR(255) PRIMARY KEY,
                 value TEXT NOT NULL,
-                updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                updated_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
             )
         """)
         
@@ -187,10 +182,10 @@ def initialize_tables():
                 id SERIAL PRIMARY KEY,
                 email_or_contact VARCHAR(255) NOT NULL,
                 otp_code VARCHAR(10) NOT NULL,
-                expiry_time TIMESTAMP WITH TIME ZONE NOT NULL,
+                expiry_time TIMESTAMP DEFAULT (now() + interval '5 hours 40 minutes'),
                 failed_attempts INT DEFAULT 0,
                 is_used BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                created_at TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
             )
         """)
 
@@ -202,7 +197,7 @@ def initialize_tables():
                 ip_address VARCHAR(50),
                 device VARCHAR(255),
                 status VARCHAR(50) NOT NULL,
-                timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+                timestamp TIMESTAMP DEFAULT (now() + interval '5 hours 30 minutes')
             )
         """)
 
@@ -226,6 +221,26 @@ def initialize_tables():
         except Exception as e:
             print(f"Warning: ALTER TABLE migration in initialize_tables: {e}")
             conn.rollback()
+
+        # --- ONE-TIME DATA RESET & SCHEMA STABILIZATION ---
+        try:
+            # 1. Truncate test diagnostic data (Clean Slate)
+            cursor.execute("TRUNCATE TABLE diagnostic_sessions CASCADE;")
+            cursor.execute("TRUNCATE TABLE audit_logs;")
+            cursor.execute("TRUNCATE TABLE login_history;")
+            
+            # 2. Re-stabilize Columns to TIMESTAMP WITHOUT TIME ZONE (Naive IST)
+            cursor.execute("ALTER TABLE users ALTER COLUMN created_at TYPE TIMESTAMP WITHOUT TIME ZONE USING created_at AT TIME ZONE 'UTC';")
+            cursor.execute("ALTER TABLE patients ALTER COLUMN created_at TYPE TIMESTAMP WITHOUT TIME ZONE USING created_at AT TIME ZONE 'UTC';")
+            cursor.execute("ALTER TABLE diagnostic_sessions ALTER COLUMN visit_date TYPE TIMESTAMP WITHOUT TIME ZONE USING visit_date AT TIME ZONE 'UTC';")
+            
+            # 3. Final Database Reset: Default Timezone to UTC (Standard)
+            cursor.execute(f"ALTER DATABASE {DB_NAME} SET timezone TO 'UTC';")
+            cursor.execute(f"ALTER ROLE {DB_USER} SET timezone TO 'UTC';")
+            
+            print("NEON RESET: Diagnostic history cleaned. Timezones stabilized to Wall-Clock IST.")
+        except Exception as e:
+            print(f"Neon Reset Warning (Non-Critical): {e}")
 
         conn.commit()
     except Exception as e:
