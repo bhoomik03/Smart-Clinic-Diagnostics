@@ -1773,9 +1773,11 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             elif mode == "CRITICAL":
                 st.session_state.mi_sys = 160
                 st.session_state.mi_dia = 100
-                st.session_state.mi_glu = 220.0
+                st.session_state.mi_glu_v = 220.0
+                st.session_state.mi_glu_d = 220.0
                 st.session_state.mi_chol = 280.0
-                st.session_state.mi_bmi = 32.0
+                st.session_state.mi_bmi_v = 32.0
+                st.session_state.mi_bmi_d = 32.0
                 st.session_state.mi_oxy = 90
                 st.session_state.mi_hr = 110
                 st.session_state.mi_temp = 38.5
@@ -1822,7 +1824,7 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 st.session_state[k] = 0
             
             # Core Vitals — float fields default to 0.0
-            for k in ['mi_glu', 'mi_chol', 'mi_bmi', 'mi_temp', 'mi_ins', 'mi_dpf', 'mi_oldpeak', 'mi_creat', 'mi_hb', 'mi_sgot', 'mi_sgpt', 'mi_crp']:
+            for k in ['mi_glu_v', 'mi_glu_d', 'mi_chol', 'mi_bmi_v', 'mi_bmi_d', 'mi_temp', 'mi_ins', 'mi_dpf', 'mi_oldpeak', 'mi_creat', 'mi_hb', 'mi_sgot', 'mi_sgpt', 'mi_crp']:
                 st.session_state[k] = 0.0
             
             # Selectbox fields — reset to first option (sentinel/default)
@@ -1872,14 +1874,17 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             p_sex = st.session_state.get('patient_profile', {}).get('gender', 'Female')
             
             with st.expander("❤️ Core Vitals & Blood Sugar", expanded=True):
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
                     systolic = st.number_input("Systolic BP (mmHg)", min_value=0, max_value=250, value=0, key="mi_sys")
                     diastolic = st.number_input("Diastolic BP (mmHg)", min_value=0, max_value=150, value=0, key="mi_dia")
                 with col2:
+                    glucose_v = st.number_input("Glucose (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, key="mi_glu_v", on_change=sync_glu_v)
                     cholesterol = st.number_input("Total Cholesterol (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, key="mi_chol")
-                    oxygen = st.number_input("Oxygen Saturation (%)", min_value=0, max_value=100, value=0, key="mi_oxy")
                 with col3:
+                    bmi_v = st.number_input("BMI", min_value=0.0, max_value=60.0, value=0.0, key="mi_bmi_v", on_change=sync_bmi_v)
+                    oxygen = st.number_input("Oxygen Saturation (%)", min_value=0, max_value=100, value=0, key="mi_oxy")
+                with col4:
                     heart_rate = st.number_input("Heart Rate (bpm)", min_value=0, max_value=200, value=0, key="mi_hr")
                     body_temp = st.number_input("Body Temp (°C)", min_value=0.0, max_value=45.0, value=0.0, key="mi_temp")
 
@@ -1887,21 +1892,22 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 submit_core_vitals = st.form_submit_button("🩸 Evaluate Blood Sugar & Vitals Only", width="stretch")
                 
             with st.expander("🩸 Advanced Diabetic Specifics", expanded=True):
-                col1, col2, col3 = st.columns(3)
+                col1, col2, col3, col4 = st.columns(4)
                 with col1:
-                    glucose = st.number_input("Blood Glucose (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, help="Fasting/PP Glucose level", key="mi_glu")
-                    bmi = st.number_input("Current BMI", min_value=0.0, max_value=60.0, value=0.0, help="Body Mass Index", key="mi_bmi")
+                    glucose_d = st.number_input("Blood Glucose (mg/dL)", min_value=0.0, max_value=400.0, value=0.0, key="mi_glu_d", on_change=sync_glu_d)
+                    bmi_d = st.number_input("Current BMI", min_value=0.0, max_value=60.0, value=0.0, key="mi_bmi_d", on_change=sync_bmi_d)
                 with col2:
                     if p_sex == "Female":
-                        pregnancies = st.number_input("Pregnancies", min_value=0, max_value=20, value=0, help="Number of times pregnant", key="mi_preg")
+                        pregnancies = st.number_input("Pregnancies", min_value=0, max_value=20, value=0, key="mi_preg")
                     else:
                         st.markdown("**Pregnancies**")
                         st.caption("N/A for Men")
                         pregnancies = 0
-                    skin_thickness = st.number_input("Skin Thickness (mm)", min_value=0, max_value=100, value=0, help="Triceps Skinfold Check", key="mi_skin")
+                    skin_thickness = st.number_input("Skin Thickness (mm)", min_value=0, max_value=100, value=0, key="mi_skin")
                 with col3: 
-                    insulin = st.number_input("Insulin (mu U/ml)", min_value=0.0, max_value=900.0, value=0.0, help="Serum Insulin", key="mi_ins")
-                    dpf = st.number_input("Diabetes Pedigree Function", min_value=0.0, max_value=3.0, value=0.0, format="%.3f", help="Genetic score (0-3)", key="mi_dpf")
+                    insulin = st.number_input("Insulin (mu U/ml)", min_value=0.0, max_value=900.0, value=0.0, key="mi_ins")
+                with col4:
+                    dpf = st.number_input("Diabetes Pedigree Function", min_value=0.0, max_value=3.0, value=0.0, format="%.3f", key="mi_dpf")
                 submit_dia = st.form_submit_button("🩺 Analyze Diabetes Only", width="stretch")
                 
             with st.expander("❤️ Advanced Heart Diagnostics", expanded=True):
@@ -1982,6 +1988,9 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                 submit_path = st.form_submit_button("🧪 Analyze Pathology & Symptoms Only", width="stretch")
                 submit_general = st.form_submit_button("🩺 Analyze General Disease Only", width="stretch")
 
+            glucose = glucose_v # Both are synced
+            bmi = bmi_v # Both are synced
+            
             # Build dict for current state evaluation
             manual_data = {}
             if systolic > 0: manual_data['systolic'] = systolic
