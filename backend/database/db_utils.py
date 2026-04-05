@@ -1345,8 +1345,7 @@ def verify_otp_db(email_or_contact, entered_otp):
                 conn.commit()
                 return False, "Too many failed attempts. Request a new OTP."
                 
-            from datetime import datetime
-            if datetime.now() > expiry_time:
+            if get_ist_now() > expiry_time:
                 cursor.execute("UPDATE otp_verification SET is_used = TRUE WHERE id = %s", (otp_id,))
                 conn.commit()
                 return False, "OTP has expired."
