@@ -843,37 +843,60 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 detected_conditions.append({"disease": "Diabetes", "severity": glu_eval['category'], "reason": glu_eval['reason']})
 
     # --- 2. HEART DISEASE LOGIC --- (Enhanced Hybrid Approach)
-    has_heart_features = all(k in extracted_data for k in ['age', 'systolic', 'cholesterol'])
-    if (not target_block or target_block == 'heart') and has_heart_features:
-        raw_features_heart = {
-            'age': extracted_data['age'], 'sex': 1 if patient_info and patient_info.get('gender') == 'Male' else (0 if patient_info and patient_info.get('gender') == 'Female' else 1),
-            'cp': extracted_data.get('cp', 0), 'trestbps': extracted_data['systolic'], 'chol': extracted_data['cholesterol'], 
-            'fbs': 1 if extracted_data.get('glucose', 0) > 120 else 0, 'restecg': extracted_data.get('restecg', 1),
-            'thalach': extracted_data.get('thalach', 150), 'exang': extracted_data.get('exang', 0), 'oldpeak': extracted_data.get('oldpeak', 0.0),
-            'slope': extracted_data.get('slope', 1), 'ca': extracted_data.get('ca', 0), 'thal': extracted_data.get('thal', 2)
-        }
-        input_df = pd.DataFrame([raw_features_heart])
-        scaled_array = scaler_heart.transform(input_df)
-        scaled_features = {key: val for key, val in zip(feature_keys_heart, scaled_array[0])}
-        ml_result_heart = predict_disease("Heart Disease", scaled_features, raw_data=raw_features_heart)
+    if not target_block or target_block == 'heart':
+        # Default heart features for ML if missing (Imputed with Clinical Averages)
+        v_age = extracted_data.get('age', 54) # Average age in UCI heart dataset
+        v_sys = extracted_data.get('systolic', 120)
+        v_chol = extracted_data.get('cholesterol', 200)
+        v_glu = extracted_data.get('glucose', 100)
         
-        if ml_result_heart['status'] == 'success' and ml_result_heart['prediction'] == 1:
-            risk_data["Heart Risk"] = ml_result_heart.get('confidence', 0.0)
-            detected_conditions.append({
-                "disease": "Heart Disease", "severity": "High",
-                "reason": f"AI Model detected high risk of Heart Disease (Confidence: {ml_result_heart.get('confidence', 0):.2%}).",
-                "advice": "Immediate Cardiac Consultation required. Avoid strenuous physical activity and monitor blood pressure hourly.",
-                "factors": ml_result_heart.get('top_factors', [])
-            })
-        ml_db_logs.append({"disease": "Heart Disease", "status": ml_result_heart['status'], "prediction": ml_result_heart.get('prediction'), "confidence": ml_result_heart.get('confidence')})
-        # Heart Diagnostics Fallsback (Only if block is Heart)
-        if 'cholesterol' in extracted_data or 'systolic' in extracted_data:
-            v_chol = extracted_data.get('cholesterol', 0)
-            v_sys = extracted_data.get('systolic', 0)
-            rule_heart_risk = 0.0
-            if v_chol > 240 or v_sys > 160: rule_heart_risk = 0.85
-            elif v_chol > 200 or v_sys > 140: rule_heart_risk = 0.55
-            risk_data["Heart Risk"] = max(risk_data["Heart Risk"], rule_heart_risk)
+        has_heart_ml_features = all(k in extracted_data for k in ['age', 'systolic', 'cholesterol'])
+        
+        if has_heart_ml_features or target_block == 'heart':
+            raw_features_heart = {
+                'age': v_age, 
+                'sex': 1 if patient_info and patient_info.get('gender') == 'Male' else (0 if patient_info and patient_info.get('gender') == 'Female' else 1),
+                'cp': extracted_data.get('cp', 0), 
+                'trestbps': v_sys, 
+                'chol': v_chol, 
+                'fbs': 1 if v_glu > 120 else 0, 
+                'restecg': extracted_data.get('restecg', 1),
+                'thalach': extracted_data.get('thalach', 150), 
+                'exang': extracted_data.get('exang', 0), 
+                'oldpeak': extracted_data.get('oldpeak', 0.0),
+                'slope': extracted_data.get('slope', 1), 
+                'ca': extracted_data.get('ca', 0), 
+                'thal': extracted_data.get('thal', 2)
+            }
+            try:
+                input_df = pd.DataFrame([raw_features_heart])
+                scaled_array = scaler_heart.transform(input_df)
+                scaled_features = {key: val for key, val in zip(feature_keys_heart, scaled_array[0])}
+                ml_result_heart = predict_disease("Heart Disease", scaled_features, raw_data=raw_features_heart)
+                
+                if ml_result_heart['status'] == 'success':
+                    if ml_result_heart['prediction'] == 1:
+                        risk_data["Heart Risk"] = ml_result_heart.get('confidence', 0.0)
+                        detected_conditions.append({
+                            "disease": "Heart Disease", "severity": "High",
+                            "reason": f"AI Model detected high risk of Heart Disease (Confidence: {ml_result_heart.get('confidence', 0):.2%}).",
+                            "advice": "Immediate Cardiac Consultation required. Avoid strenuous physical activity and monitor blood pressure hourly.",
+                            "factors": ml_result_heart.get('top_factors', [])
+                        })
+                    ml_db_logs.append({"disease": "Heart Disease", "status": ml_result_heart['status'], "prediction": ml_result_heart.get('prediction'), "confidence": ml_result_heart.get('confidence')})
+            except Exception as e:
+                st.error(f"Heart ML Pipeline Error: {e}")
+
+        # Heart Diagnostics Fallback (Rule-based) - Runs if target is heart or features exist
+        rule_heart_risk = 0.0
+        if v_chol > 240 or v_sys > 160: rule_heart_risk = 0.85
+        elif v_chol > 200 or v_sys > 140: rule_heart_risk = 0.55
+        
+        # Also check heart-specific manual fields if they indicate risk
+        if extracted_data.get('ca', 0) > 0 or extracted_data.get('oldpeak', 0) >= 1.0:
+            rule_heart_risk = max(rule_heart_risk, 0.75)
+            
+        risk_data["Heart Risk"] = max(risk_data["Heart Risk"], rule_heart_risk)
     
     # --- 3. HYPERTENSION LOGIC ---
     # Strictly Targeted: Only if block is core_vitals
@@ -973,8 +996,8 @@ def run_diagnostic_pipeline(extracted_data, scaler_dia, feature_keys_dia, scaler
                 })
 
     # --- 11. GENERAL VITALS (HR, TEMP, O2) LOGIC ---
-    # Strictly Targeted: Only if block is core_vitals
-    if not target_block or target_block == 'core_vitals':
+    # Included for Core Vitals or Targeted Heart/Pathology analysis
+    if not target_block or target_block in ['core_vitals', 'heart', 'pathology']:
         if 'heart_rate_bpm' in extracted_data:
             hr_eval = evaluate_heart_rate(extracted_data['heart_rate_bpm'])
             if hr_eval["detected"]:
@@ -1993,6 +2016,16 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
                                     "1: Fixed Defect (Stable)" if x==1 else 
                                     "2: Reversible Defect (Unstable)", 
                         help="Blood flow condition as shown on cardiac scan", key="mi_thal")
+
+                st.markdown("<div style='margin: 15px 0 10px 0; border-top: 1px dashed #ddd; padding-top: 15px; font-weight: 700; color: #0a192f;'>🩺 Supporting Heart Vitals (Optional if filled in Core section)</div>", unsafe_allow_html=True)
+                col_h1, col_h2, col_h3 = st.columns(3)
+                with col_h1:
+                    sys_h = st.number_input("Systolic BP (mmHg)", min_value=0, max_value=250, value=0, key="mi_sys_h", help="Used for Cardiovascular Risk Assessment")
+                with col_h2:
+                    dia_h = st.number_input("Diastolic BP (mmHg)", min_value=0, max_value=150, value=0, key="mi_dia_h")
+                with col_h3:
+                    chol_h = st.number_input("Total Cholesterol (mg/dL)", min_value=0.0, max_value=450.0, value=0.0, key="mi_chol_h", help="Critical for Heart AI prediction")
+                
                 submit_heart = st.form_submit_button("🩺 Analyze Heart Disease Only", width="stretch")
 
             with st.expander("🧪 Comprehensive Pathology Panels", expanded=False):
@@ -2031,8 +2064,15 @@ def render_clinical_portal(user_id, username, scaler_dia, feature_keys_dia, scal
             
             # Build dict for current state evaluation
             manual_data = {}
-            if systolic > 0: manual_data['systolic'] = systolic
-            if diastolic > 0: manual_data['diastolic'] = diastolic
+            # Logic: Use block-specific vitals if they exist, otherwise fallback to core vitals
+            v_sys = sys_h if sys_h > 0 else systolic
+            v_dia = dia_h if dia_h > 0 else diastolic
+            v_chol = chol_h if chol_h > 0 else cholesterol
+
+            if v_sys > 0: manual_data['systolic'] = v_sys
+            if v_dia > 0: manual_data['diastolic'] = v_dia
+            if v_chol > 0: manual_data['cholesterol'] = v_chol
+            
             if glucose > 0: manual_data['glucose'] = glucose
             if cholesterol > 0: manual_data['cholesterol'] = cholesterol
             if bmi > 0: manual_data['bmi'] = bmi
