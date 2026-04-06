@@ -47,7 +47,7 @@ DB_PASS = get_env_var("MEDICAL_AI_DB_PASS", "1234")
 DB_HOST = get_env_var("MEDICAL_AI_DB_HOST", "localhost")
 DB_PORT = get_env_var("MEDICAL_AI_DB_PORT", "5432")
 DB_NAME = get_env_var("MEDICAL_AI_DB_NAME", "medical_ai")
-DB_SSLMODE = get_env_var("DB_SSLMODE", "require")
+DB_SSLMODE = get_env_var("DB_SSLMODE", "prefer")
 
 def create_database():
     """Creates the medical_ai database if it doesn't exist."""
